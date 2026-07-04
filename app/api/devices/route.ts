@@ -10,13 +10,14 @@ type DeviceWithLogs = Device & {
 export async function GET(request: Request) {
   try {
     const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`get_devices_${ip}`, 120, 60000); // Max 120 reqs/min per IP
+    const rateLimit = checkRateLimit(`get_devices_${ip}`, 120, 60000);
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
     }
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
+    const now = new Date();
 
     const devices = (await prisma.device.findMany({
       orderBy: { updatedAt: 'desc' },
@@ -49,6 +50,8 @@ export async function GET(request: Request) {
         createdAt: string;
         chargeGained?: number;
         durationMinutes?: number;
+        offlineDurationMinutes?: number;
+        offlineSince?: string;
       }[] = [];
 
       for (let i = 0; i < logs.length; i++) {
@@ -63,11 +66,16 @@ export async function GET(request: Request) {
         }
 
         if (
-          (l.eventType === 'PLUGGED_IN' || l.eventType === 'UNPLUGGED' || l.eventType === 'FULL_CHARGE') &&
+          (l.eventType === 'PLUGGED_IN' ||
+            l.eventType === 'UNPLUGGED' ||
+            l.eventType === 'FULL_CHARGE' ||
+            l.eventType === 'RECONNECTED') &&
           history.length < 10
         ) {
           let chargeGained: number | undefined = undefined;
           let durationMinutes: number | undefined = undefined;
+          let offlineDurationMinutes: number | undefined = undefined;
+          let offlineSince: string | undefined = undefined;
 
           if (l.eventType === 'UNPLUGGED') {
             for (let j = i + 1; j < logs.length; j++) {
@@ -79,6 +87,14 @@ export async function GET(request: Request) {
                 break;
               }
             }
+          } else if (l.eventType === 'RECONNECTED') {
+            for (let j = i + 1; j < logs.length; j++) {
+              const prev = logs[j];
+              const timeDiffMs = l.createdAt.getTime() - prev.createdAt.getTime();
+              offlineDurationMinutes = Math.max(1, Math.round(timeDiffMs / (1000 * 60)));
+              offlineSince = prev.createdAt.toISOString();
+              break;
+            }
           }
 
           history.push({
@@ -89,6 +105,8 @@ export async function GET(request: Request) {
             createdAt: l.createdAt.toISOString(),
             chargeGained,
             durationMinutes,
+            offlineDurationMinutes,
+            offlineSince,
           });
         }
       }
@@ -115,6 +133,12 @@ export async function GET(request: Request) {
         });
       }
 
+      // Check if device is currently offline (> 15 minutes without update)
+      const timeSinceUpdateMinutes = (now.getTime() - device.updatedAt.getTime()) / (1000 * 60);
+      const isOffline = timeSinceUpdateMinutes > 15;
+      const offlineDurationMinutes = isOffline ? Math.round(timeSinceUpdateMinutes) : undefined;
+      const offlineSince = isOffline ? device.updatedAt.toISOString() : undefined;
+
       return {
         id: device.id,
         name: device.name,
@@ -124,6 +148,9 @@ export async function GET(request: Request) {
         timeRemaining: device.timeRemaining,
         acceptingUpdates: device.acceptingUpdates,
         updatedAt: device.updatedAt.toISOString(),
+        isOffline,
+        offlineDurationMinutes,
+        offlineSince,
         todayStats: {
           pluggedCount,
           unpluggedCount,
@@ -162,7 +189,7 @@ interface PatchPayload {
 export async function PATCH(request: Request) {
   try {
     const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`patch_devices_${ip}`, 30, 60000); // Max 30 reqs/min
+    const rateLimit = checkRateLimit(`patch_devices_${ip}`, 30, 60000);
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
     }

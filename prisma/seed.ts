@@ -63,7 +63,7 @@ async function main() {
         { batteryLevel: 100, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(12) },
         { batteryLevel: 95, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(9) },
         { batteryLevel: 88, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(5) },
-        { batteryLevel: 82, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(1) },
+        { batteryLevel: 82, isCharging: false, eventType: 'RECONNECTED', createdAt: getTodayTime(1, 30) },
       ]
     },
     {
@@ -91,15 +91,15 @@ async function main() {
       platform: 'ESP32',
       batteryLevel: 18,
       isCharging: false,
-      timeRemaining: 120,
+      timeRemaining: null,
       acceptingUpdates: true,
       prevBattery: 20,
-      updatedAt: getTodayTime(0, 10),
+      updatedAt: getTodayTime(3, 0), // Last updated 3 hours ago -> Currently OFFLINE!
       logs: [
         { batteryLevel: 30, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(18) },
         { batteryLevel: 25, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(12) },
         { batteryLevel: 21, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(6) },
-        { batteryLevel: 18, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(1) },
+        { batteryLevel: 18, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(3) },
       ]
     },
     {

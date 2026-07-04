@@ -19,6 +19,8 @@ interface HistoryEvent {
   createdAt: string;
   chargeGained?: number;
   durationMinutes?: number;
+  offlineDurationMinutes?: number;
+  offlineSince?: string;
 }
 
 interface GraphPoint {
@@ -45,16 +47,21 @@ interface Device {
   timeRemaining?: number | null;
   acceptingUpdates: boolean;
   updatedAt: string;
+  isOffline?: boolean;
+  offlineDurationMinutes?: number;
+  offlineSince?: string;
   todayStats?: TodayStats;
 }
 
-const getBatteryColor = (level: number): string => {
+const getBatteryColor = (level: number, isOffline?: boolean): string => {
+  if (isOffline) return "bg-slate-400 shadow-sm shadow-slate-400/20";
   if (level > 50) return "bg-emerald-500 shadow-sm shadow-emerald-500/20";
   if (level >= 20) return "bg-amber-500 shadow-sm shadow-amber-500/20";
   return "bg-rose-500 shadow-sm shadow-rose-500/20";
 };
 
-const formatTimeRemaining = (minutes: number | null | undefined, isCharging: boolean): string | null => {
+const formatTimeRemaining = (minutes: number | null | undefined, isCharging: boolean, isOffline?: boolean): string | null => {
+  if (isOffline) return null;
   if (minutes === null || minutes === undefined || minutes <= 0) return null;
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
@@ -71,6 +78,14 @@ const formatTimeRemaining = (minutes: number | null | undefined, isCharging: boo
   return isCharging ? `ชาร์จเต็มในอีกประมาณ ~${timeStr}` : `เหลือเวลาใช้งานอีก ~${timeStr}`;
 };
 
+const formatDuration = (totalMinutes: number): string => {
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (hours > 0 && mins > 0) return `${hours} ชม. ${mins} นาที`;
+  if (hours > 0) return `${hours} ชม.`;
+  return `${mins} นาที`;
+};
+
 const formatEventType = (evt: HistoryEvent): string => {
   const level = evt.batteryLevel;
   switch (evt.eventType) {
@@ -80,12 +95,17 @@ const formatEventType = (evt: HistoryEvent): string => {
       let base = `ถอดสายชาร์จ (${level}%)`;
       if (evt.chargeGained !== undefined && evt.durationMinutes !== undefined) {
         const sign = evt.chargeGained > 0 ? `+${evt.chargeGained}` : `${evt.chargeGained}`;
-        const hours = Math.floor(evt.durationMinutes / 60);
-        const mins = evt.durationMinutes % 60;
-        let timeStr = `${mins} นาที`;
-        if (hours > 0 && mins > 0) timeStr = `${hours} ชม. ${mins} นาที`;
-        else if (hours > 0) timeStr = `${hours} ชม.`;
+        const timeStr = formatDuration(evt.durationMinutes);
         base += ` [ชาร์จเพิ่ม ${sign}% ใช้เวลา ${timeStr}]`;
+      }
+      return base;
+    }
+    case 'RECONNECTED': {
+      let base = `🟢 กลับมาเชื่อมต่อ (${level}%)`;
+      if (evt.offlineDurationMinutes !== undefined && evt.offlineSince) {
+        const sinceTime = new Date(evt.offlineSince).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const timeStr = formatDuration(evt.offlineDurationMinutes);
+        base += ` [ขาดการติดต่อตั้งแต่ ${sinceTime} เป็นเวลา ${timeStr}]`;
       }
       return base;
     }
@@ -96,7 +116,17 @@ const formatEventType = (evt: HistoryEvent): string => {
   }
 };
 
-const getPlatformStyle = (platform: string): { bg: string; icon: React.ReactNode } => {
+const getPlatformStyle = (platform: string, isOffline?: boolean): { bg: string; icon: React.ReactNode } => {
+  if (isOffline) {
+    return {
+      bg: "bg-slate-100 border-slate-300 text-slate-500",
+      icon: (
+        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+        </svg>
+      ),
+    };
+  }
   const p = platform.toLowerCase();
   if (p.includes("win")) {
     return {
@@ -123,7 +153,7 @@ const getPlatformStyle = (platform: string): { bg: string; icon: React.ReactNode
       bg: "bg-emerald-50 border-emerald-100 text-emerald-600",
       icon: (
         <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9997c.5511 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396" />
+          <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396" />
         </svg>
       ),
     };
@@ -230,9 +260,9 @@ interface DeviceCardProps {
 }
 
 const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept }: DeviceCardProps) => {
-  const style = useMemo(() => getPlatformStyle(device.platform), [device.platform]);
-  const timeFormatted = useMemo(() => formatTimeRemaining(device.timeRemaining, device.isCharging), [device.timeRemaining, device.isCharging]);
-  const batteryColor = useMemo(() => getBatteryColor(device.batteryLevel), [device.batteryLevel]);
+  const style = useMemo(() => getPlatformStyle(device.platform, device.isOffline), [device.platform, device.isOffline]);
+  const timeFormatted = useMemo(() => formatTimeRemaining(device.timeRemaining, device.isCharging, device.isOffline), [device.timeRemaining, device.isCharging, device.isOffline]);
+  const batteryColor = useMemo(() => getBatteryColor(device.batteryLevel, device.isOffline), [device.batteryLevel, device.isOffline]);
   const stats = device.todayStats;
 
   const [isEditing, setIsEditing] = useState(false);
@@ -251,7 +281,7 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
   };
 
   return (
-    <div className={`bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between h-full ${!device.acceptingUpdates ? "opacity-75 border-slate-300 bg-slate-50/50" : "border-slate-200/80 hover:border-slate-300"}`}>
+    <div className={`bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between h-full ${!device.acceptingUpdates ? "opacity-75 border-slate-300 bg-slate-50/50" : device.isOffline ? "border-amber-300/80 bg-amber-50/20" : "border-slate-200/80 hover:border-slate-300"}`}>
       <div>
         <div className="flex items-start justify-between gap-3 mb-6">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
@@ -302,9 +332,17 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
                   </button>
                 </div>
               )}
-              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block mt-0.5">
-                {device.platform}
-              </span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block">
+                  {device.platform}
+                </span>
+                {device.isOffline && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                    ขาดการติดต่อ ~{formatDuration(device.offlineDurationMinutes || 0)}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -321,25 +359,39 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
         </div>
 
         <div className="flex items-baseline justify-between mb-3 sm:mb-4">
-          <span className="text-4xl sm:text-5xl font-black tracking-tight font-mono text-slate-900">
+          <span className={`text-4xl sm:text-5xl font-black tracking-tight font-mono ${device.isOffline ? "text-slate-400" : "text-slate-900"}`}>
             {device.batteryLevel}%
           </span>
-          {device.isCharging && (
+          {device.isCharging && !device.isOffline && (
             <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
               กำลังชาร์จ
+            </span>
+          )}
+          {device.isOffline && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+              ออฟไลน์
             </span>
           )}
         </div>
 
         <div className="w-full bg-slate-100 h-3 sm:h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
           <div
-            className={`h-full rounded-full transition-all duration-700 ease-out ${batteryColor} ${device.isCharging ? "animate-charging" : ""}`}
+            className={`h-full rounded-full transition-all duration-700 ease-out ${batteryColor} ${device.isCharging && !device.isOffline ? "animate-charging" : ""}`}
             style={{ width: `${device.batteryLevel}%` }}
           />
         </div>
 
-        {timeFormatted ? (
+        {device.isOffline ? (
+          <div className="mt-4 sm:mt-5 flex items-center gap-2 text-xs sm:text-sm font-bold text-amber-800 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200/80 shadow-2xs">
+            <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>
+              ขาดการติดต่อตั้งแต่: {device.offlineSince ? new Date(device.offlineSince).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : "-"}
+            </span>
+          </div>
+        ) : timeFormatted ? (
           <div className="mt-4 sm:mt-5 flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-600 bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200/60">
             <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

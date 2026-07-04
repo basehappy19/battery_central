@@ -19,7 +19,7 @@ interface UpdatePayload {
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`update_battery_${ip}`, 60, 60000); // Max 60 reqs/min per IP
+    const rateLimit = checkRateLimit(`update_battery_${ip}`, 60, 60000);
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: 'Too Many Requests: Rate limit exceeded' }, { status: 429 });
     }
@@ -77,8 +77,14 @@ export async function POST(request: Request) {
     } else {
       prevBattery = existingDevice.batteryLevel;
       prevUpdatedAt = existingDevice.updatedAt;
+      const timeDiffMinutes = (now.getTime() - new Date(existingDevice.updatedAt).getTime()) / (1000 * 60);
 
-      if (existingDevice.isCharging !== currentIsCharging) {
+      // Check if device was offline (> 15 minutes without update) and just came back!
+      if (timeDiffMinutes > 15) {
+        eventType = 'RECONNECTED';
+        const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
+        await sendNotification(`${deviceName} กลับมาเชื่อมต่อ (ขาดการติดต่อไป ~${Math.round(timeDiffMinutes)} นาที)`);
+      } else if (existingDevice.isCharging !== currentIsCharging) {
         eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
         const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
         if (currentIsCharging) {
@@ -100,8 +106,6 @@ export async function POST(request: Request) {
         prevBattery !== currentBattery &&
         prevUpdatedAt
       ) {
-        const timeDiffMinutes = (now.getTime() - new Date(prevUpdatedAt).getTime()) / (1000 * 60);
-
         if (timeDiffMinutes > 0) {
           if (currentIsCharging && currentBattery > prevBattery) {
             const chargeRatePerMin = (currentBattery - prevBattery) / timeDiffMinutes;
