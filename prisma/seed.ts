@@ -59,6 +59,7 @@ async function main() {
       prevBattery: 85,
       updatedAt: getTodayTime(0, 5),
       logs: [
+        { batteryLevel: 60, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(14) },
         { batteryLevel: 100, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(12) },
         { batteryLevel: 95, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(9) },
         { batteryLevel: 88, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(5) },
@@ -77,9 +78,10 @@ async function main() {
       updatedAt: getTodayTime(0, 1),
       logs: [
         { batteryLevel: 90, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(16) },
-        { batteryLevel: 80, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(11) },
-        { batteryLevel: 55, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(6) },
-        { batteryLevel: 38, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(2) },
+        { batteryLevel: 38, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(3, 30) },
+        { batteryLevel: 80, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(2) },
+        { batteryLevel: 55, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(1) },
+        { batteryLevel: 40, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(0, 45) },
         { batteryLevel: 45, isCharging: true, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(0, 30) },
       ]
     },
@@ -112,7 +114,7 @@ async function main() {
       updatedAt: getTodayTime(0, 3),
       logs: [
         { batteryLevel: 60, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(15) },
-        { batteryLevel: 100, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(10) },
+        { batteryLevel: 100, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(13) },
         { batteryLevel: 80, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(5) },
         { batteryLevel: 85, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(2) },
         { batteryLevel: 94, isCharging: true, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(0, 15) },

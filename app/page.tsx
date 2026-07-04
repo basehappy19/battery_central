@@ -17,6 +17,8 @@ interface HistoryEvent {
   isCharging: boolean;
   eventType: string;
   createdAt: string;
+  chargeGained?: number;
+  durationMinutes?: number;
 }
 
 interface GraphPoint {
@@ -69,12 +71,24 @@ const formatTimeRemaining = (minutes: number | null | undefined, isCharging: boo
   return isCharging ? `ชาร์จเต็มในอีกประมาณ ~${timeStr}` : `เหลือเวลาใช้งานอีก ~${timeStr}`;
 };
 
-const formatEventType = (type: string, level: number): string => {
-  switch (type) {
+const formatEventType = (evt: HistoryEvent): string => {
+  const level = evt.batteryLevel;
+  switch (evt.eventType) {
     case 'PLUGGED_IN':
       return `เสียบสายชาร์จ (${level}%)`;
-    case 'UNPLUGGED':
-      return `ถอดสายชาร์จ (${level}%)`;
+    case 'UNPLUGGED': {
+      let base = `ถอดสายชาร์จ (${level}%)`;
+      if (evt.chargeGained !== undefined && evt.durationMinutes !== undefined) {
+        const sign = evt.chargeGained > 0 ? `+${evt.chargeGained}` : `${evt.chargeGained}`;
+        const hours = Math.floor(evt.durationMinutes / 60);
+        const mins = evt.durationMinutes % 60;
+        let timeStr = `${mins} นาที`;
+        if (hours > 0 && mins > 0) timeStr = `${hours} ชม. ${mins} นาที`;
+        else if (hours > 0) timeStr = `${hours} ชม.`;
+        base += ` [ชาร์จเพิ่ม ${sign}% ใช้เวลา ${timeStr}]`;
+      }
+      return base;
+    }
     case 'FULL_CHARGE':
       return `ชาร์จเต็ม 100%`;
     default:
@@ -134,14 +148,13 @@ const getPlatformStyle = (platform: string): { bg: string; icon: React.ReactNode
   };
 };
 
-// Recharts 24-Hour Battery Graph Component
 const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     return data.map((pt) => {
       const d = new Date(pt.time);
       return {
-        time: d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
         level: pt.level,
         isCharging: pt.isCharging,
       };
@@ -155,7 +168,7 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
   return (
     <div className="bg-slate-50/90 p-3 sm:p-4 rounded-xl border border-slate-200/60 mt-3 w-full">
       <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-        กราฟแบตเตอรี่ตลอดทั้งวัน (00:00 - 24:00 น.)
+        กราฟแบตเตอรี่ตลอดทั้งวัน (00:00 AM - 11:59 PM)
       </p>
       <div className="w-full h-40 sm:h-48">
         <ResponsiveContainer width="100%" height="100%">
@@ -188,7 +201,7 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
                 fontSize: "12px",
               }}
               formatter={(val: unknown) => [`${Number(val)}%`, "ระดับแบตเตอรี่"]}
-              labelFormatter={(label) => `เวลา: ${label} น.`}
+              labelFormatter={(label) => `เวลา: ${label}`}
             />
             <Area
               type="monotone"
@@ -240,7 +253,6 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
   return (
     <div className={`bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between h-full ${!device.acceptingUpdates ? "opacity-75 border-slate-300 bg-slate-50/50" : "border-slate-200/80 hover:border-slate-300"}`}>
       <div>
-        {/* Top Row: Icon, Name (with Rename), Status Toggle */}
         <div className="flex items-start justify-between gap-3 mb-6">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
             <div className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border ${style.bg} shrink-0`}>
@@ -296,7 +308,6 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
             </div>
           </div>
 
-          {/* Toggle Switch Accepting Request */}
           <div className="flex flex-col items-end shrink-0">
             <button
               onClick={() => onToggleAccept(device.id, device.acceptingUpdates)}
@@ -309,7 +320,6 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
           </div>
         </div>
 
-        {/* Battery Level Display */}
         <div className="flex items-baseline justify-between mb-3 sm:mb-4">
           <span className="text-4xl sm:text-5xl font-black tracking-tight font-mono text-slate-900">
             {device.batteryLevel}%
@@ -322,7 +332,6 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
           )}
         </div>
 
-        {/* Progress Bar */}
         <div className="w-full bg-slate-100 h-3 sm:h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
           <div
             className={`h-full rounded-full transition-all duration-700 ease-out ${batteryColor} ${device.isCharging ? "animate-charging" : ""}`}
@@ -330,7 +339,6 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
           />
         </div>
 
-        {/* Time Estimation */}
         {timeFormatted ? (
           <div className="mt-4 sm:mt-5 flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-600 bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200/60">
             <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -345,7 +353,6 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
           </div>
         )}
 
-        {/* Today's Statistics & 24-Hour Graph */}
         <div className="mt-6 pt-5 border-t border-slate-100">
           <button
             onClick={() => onToggleExpand(device.id)}
@@ -383,18 +390,16 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
                 </div>
               </div>
 
-              {/* Recharts 24-Hour Graph Component */}
               <RechartsBatteryGraph data={stats.graphData || []} />
 
-              {/* Event Timeline */}
               <div className="bg-slate-50/70 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/60 max-h-48 overflow-y-auto space-y-2">
                 <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">ประวัติเหตุการณ์วันนี้</p>
                 {stats.history && stats.history.length > 0 ? (
                   stats.history.map((evt) => (
                     <div key={evt.id} className="flex items-center justify-between text-xs sm:text-sm text-slate-600 py-1.5 border-b border-slate-200/40 last:border-0">
-                      <span className="font-medium">{formatEventType(evt.eventType, evt.batteryLevel)}</span>
+                      <span className="font-medium">{formatEventType(evt)}</span>
                       <span className="text-[10px] sm:text-xs text-slate-400 font-mono">
-                        {new Date(evt.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                        {new Date(evt.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                       </span>
                     </div>
                   ))
@@ -410,7 +415,7 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
       <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm text-slate-400 font-mono">
         <span>รหัส: {device.id.slice(0, 8)}</span>
         <span>
-          ใช้งานล่าสุด: {new Date(device.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+          ใช้งานล่าสุด: {new Date(device.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
       </div>
     </div>
@@ -584,7 +589,7 @@ export default function BatteryDashboard() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="text-xs font-mono text-slate-500">
-              อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
+              อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
             </span>
           </div>
         </header>

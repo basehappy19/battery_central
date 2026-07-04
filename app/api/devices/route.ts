@@ -40,6 +40,8 @@ export async function GET() {
         isCharging: boolean;
         eventType: string;
         createdAt: string;
+        chargeGained?: number;
+        durationMinutes?: number;
       }[] = [];
 
       for (let i = 0; i < logs.length; i++) {
@@ -57,12 +59,29 @@ export async function GET() {
           (l.eventType === 'PLUGGED_IN' || l.eventType === 'UNPLUGGED' || l.eventType === 'FULL_CHARGE') &&
           history.length < 10
         ) {
+          let chargeGained: number | undefined = undefined;
+          let durationMinutes: number | undefined = undefined;
+
+          if (l.eventType === 'UNPLUGGED') {
+            for (let j = i + 1; j < logs.length; j++) {
+              const prev = logs[j];
+              if (prev.eventType === 'PLUGGED_IN' || (prev.eventType === 'INITIAL' && prev.isCharging)) {
+                chargeGained = l.batteryLevel - prev.batteryLevel;
+                const timeDiffMs = l.createdAt.getTime() - prev.createdAt.getTime();
+                durationMinutes = Math.max(1, Math.round(timeDiffMs / (1000 * 60)));
+                break;
+              }
+            }
+          }
+
           history.push({
             id: l.id,
             batteryLevel: l.batteryLevel,
             isCharging: l.isCharging,
             eventType: l.eventType,
             createdAt: l.createdAt.toISOString(),
+            chargeGained,
+            durationMinutes,
           });
         }
       }
@@ -72,7 +91,6 @@ export async function GET() {
         else unpluggedCount = 1;
       }
 
-      // Graph data: chronological order (asc) from start of today
       const graphData = logs
         .slice()
         .reverse()
@@ -82,7 +100,6 @@ export async function GET() {
           isCharging: l.isCharging,
         }));
 
-      // Add current state as the latest point if not already present
       if (graphData.length === 0 || graphData[graphData.length - 1].level !== device.batteryLevel) {
         graphData.push({
           time: device.updatedAt.toISOString(),
