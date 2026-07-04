@@ -1028,7 +1028,7 @@ export default function BatteryDashboard() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
               <span className="text-xs font-mono font-semibold text-slate-600">
-                ⚡ เรียลไทม์ | อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
               </span>
             </button>
           </div>
