@@ -564,7 +564,7 @@ export default function BatteryDashboard() {
     fetchDevices(true);
     const interval = setInterval(() => {
       fetchDevices(false);
-    }, 2000);
+    }, 1000);
 
     const handleFocus = () => fetchDevices(false);
     const handleVisibilityChange = () => {
