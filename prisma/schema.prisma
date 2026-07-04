@@ -16,6 +16,7 @@ model Device {
   prevUpdatedAt    DateTime?    // Previous update timestamp for rate calculation
   timeRemaining    Int?         // Estimated minutes remaining (to full or empty)
   acceptingUpdates Boolean      @default(true) // Enable/disable receiving requests
+  order            Int          @default(0)    // Display order on dashboard
   updatedAt        DateTime     @updatedAt
   logs             BatteryLog[]
 }

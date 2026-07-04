@@ -27,7 +27,10 @@ export async function GET(request: Request) {
     const systemApiKey = setting?.value || process.env.API_SECRET_KEY || 'secret_batt_2026';
 
     const devices = (await prisma.device.findMany({
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [
+        { order: 'asc' },
+        { updatedAt: 'desc' },
+      ],
       include: {
         logs: {
           where: {
@@ -168,25 +171,6 @@ export async function GET(request: Request) {
       };
     });
 
-    const orderSetting = await prisma.setting.findUnique({ where: { key: 'device_order' } });
-    let customOrder: string[] = [];
-    try {
-      if (orderSetting?.value) customOrder = JSON.parse(orderSetting.value);
-    } catch {
-      customOrder = [];
-    }
-
-    if (customOrder.length > 0) {
-      devicesWithStats.sort((a, b) => {
-        const indexA = customOrder.indexOf(a.id);
-        const indexB = customOrder.indexOf(b.id);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return 0;
-      });
-    }
-
     return NextResponse.json(
       { devices: devicesWithStats, systemApiKey },
       {
@@ -232,6 +216,12 @@ export async function POST(request: Request) {
     const randomHex = crypto.randomBytes(12).toString('hex');
     const newId = `bat-${randomHex.slice(0, 6)}-${randomHex.slice(6, 12)}-${randomHex.slice(12, 18)}-${randomHex.slice(18, 24)}`;
 
+    const maxOrderDevice = await prisma.device.findFirst({
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+    const nextOrder = (maxOrderDevice?.order ?? -1) + 1;
+
     const newDevice = await prisma.device.create({
       data: {
         id: newId,
@@ -240,6 +230,7 @@ export async function POST(request: Request) {
         batteryLevel: 0,
         isCharging: false,
         acceptingUpdates: true,
+        order: nextOrder,
       },
     });
 
@@ -368,11 +359,14 @@ export async function PUT(request: Request) {
 
     const cleanOrder = order.map((id) => sanitizeString(String(id), 50));
 
-    await prisma.setting.upsert({
-      where: { key: 'device_order' },
-      update: { value: JSON.stringify(cleanOrder) },
-      create: { key: 'device_order', value: JSON.stringify(cleanOrder) },
-    });
+    await prisma.$transaction(
+      cleanOrder.map((id, index) =>
+        prisma.device.updateMany({
+          where: { id },
+          data: { order: index },
+        })
+      )
+    );
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: unknown) {
