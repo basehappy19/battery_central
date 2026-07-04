@@ -277,56 +277,30 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRen
   return (
     <div className={`bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between h-full ${!device.acceptingUpdates ? "opacity-75 border-slate-300 bg-slate-50/50" : device.isOffline ? "border-amber-300/80 bg-amber-50/20" : "border-slate-200/80 hover:border-slate-300"}`}>
       <div>
-        <div className="flex items-start justify-between gap-3 mb-6">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-            <div className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border ${style.bg} shrink-0`}>
-              {style.icon}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 group">
-                <h2 className="font-bold text-base sm:text-lg text-slate-900 break-words">
-                  {device.name}
-                </h2>
-                <button
-                  onClick={() => onPromptRename(device.id, device.name)}
-                  className="text-slate-400 hover:text-slate-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
-                  title="คลิกเพื่อเปลี่ยนชื่ออุปกรณ์"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block">
-                  {device.platform}
-                </span>
-              </div>
-            </div>
+        <div className="flex items-center gap-3 sm:gap-4 mb-6">
+          <div className={`p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border ${style.bg} shrink-0`}>
+            {style.icon}
           </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <button
-              onClick={() => {
-                onToggleAccept(device.id, device.acceptingUpdates);
-                onToast(device.acceptingUpdates ? 'ปิดรับข้อมูลอัปเดตแล้ว' : 'เปิดรับข้อมูลอัปเดตแล้ว', 'info');
-              }}
-              className={`px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1.5 ${device.acceptingUpdates ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-200 text-slate-600 border-slate-300"}`}
-              title="กดเพื่อเปิด/ปิดรับข้อมูลอัปเดตจากอุปกรณ์นี้"
-            >
-              <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${device.acceptingUpdates ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}></span>
-              <span>{device.acceptingUpdates ? "รับข้อมูล" : "ปิดรับข้อมูล"}</span>
-            </button>
-            <button
-              onClick={() => onPromptDelete(device.id, device.name)}
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 hover:text-rose-700 px-2.5 py-1 rounded-md bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
-              title="ลบอุปกรณ์นี้ออกจากระบบ"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              <span>ลบอุปกรณ์</span>
-            </button>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 group">
+              <h2 className="font-bold text-base sm:text-lg text-slate-900 break-words">
+                {device.name}
+              </h2>
+              <button
+                onClick={() => onPromptRename(device.id, device.name)}
+                className="text-slate-400 hover:text-slate-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
+                title="คลิกเพื่อเปลี่ยนชื่ออุปกรณ์"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block">
+                {device.platform}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -437,9 +411,32 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRen
         </div>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end text-xs sm:text-sm text-slate-400 font-mono">
-        <span>
-          <span className="font-sans font-semibold">ใช้งานล่าสุด:</span> {new Date(device.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+      <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm text-slate-400">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              onToggleAccept(device.id, device.acceptingUpdates);
+              onToast(device.acceptingUpdates ? 'ปิดรับข้อมูลอัปเดตแล้ว' : 'เปิดรับข้อมูลอัปเดตแล้ว', 'info');
+            }}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1.5 ${device.acceptingUpdates ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"}`}
+            title="กดเพื่อเปิด/ปิดรับข้อมูลอัปเดตจากอุปกรณ์นี้"
+          >
+            <span className={`w-2 h-2 rounded-full ${device.acceptingUpdates ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}></span>
+            <span>{device.acceptingUpdates ? "รับข้อมูล" : "ปิดรับข้อมูล"}</span>
+          </button>
+          <button
+            onClick={() => onPromptDelete(device.id, device.name)}
+            className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+            title="ลบอุปกรณ์นี้ออกจากระบบ"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span>ลบ</span>
+          </button>
+        </div>
+        <span className="font-mono text-right shrink-0">
+          <span className="font-sans font-semibold">อัปเดต:</span> {new Date(device.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
       </div>
     </div>
