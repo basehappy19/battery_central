@@ -1434,7 +1434,18 @@ export default function BatteryDashboard() {
                   </div>
 
                   <div className="bg-slate-900 text-slate-200 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm font-mono space-y-2 shadow-inner">
-                    <span className="text-slate-400 block text-xs font-sans font-bold uppercase tracking-wider">ตัวอย่าง JSON สำหรับ MACRODROID / POST BODY</span>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-slate-400 block text-xs font-sans font-bold uppercase tracking-wider">ตัวอย่าง JSON สำหรับ MACRODROID / POST BODY</span>
+                      <button
+                        onClick={() => copyToClipboard(`{\n  "deviceId": "${createdResult.id}",\n  "apiKey": "${createdResult.apiKey}",\n  "batteryLevel": "[battery_level]",\n  "isCharging": [is_charging]\n}`, "ตัวอย่าง JSON")}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold font-sans transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer border border-slate-700 shadow-xs"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>คัดลอก JSON</span>
+                      </button>
+                    </div>
                     <pre className="overflow-x-auto text-emerald-400 font-semibold pt-1">
 {`{
   "deviceId": "${createdResult.id}",
