@@ -9,23 +9,46 @@ async function sendNotification(message: string): Promise<void> {
 
 interface UpdatePayload {
   deviceId?: string;
+  device_id?: string;
+  id?: string;
   name?: string;
   platform?: string;
   batteryLevel?: number | string;
+  battery_level?: number | string;
+  level?: number | string;
+  battery?: number | string;
   isCharging?: boolean | string;
+  is_charging?: boolean | string;
+  charging?: boolean | string;
+  plugged?: boolean | string;
   apiKey?: string;
+  api_key?: string;
+  key?: string;
 }
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as UpdatePayload;
-    const { deviceId, name, platform, batteryLevel, isCharging } = body || {};
+    let body: UpdatePayload;
+    try {
+      body = (await request.json()) as UpdatePayload;
+    } catch {
+      return NextResponse.json({ error: 'รูปแบบ JSON ไม่ถูกต้อง (Invalid JSON Syntax) กรุณาตรวจสอบเครื่องหมายปีกกา ฟันหนู และลูกน้ำ' }, { status: 400 });
+    }
 
-    if (!deviceId || batteryLevel === undefined || isCharging === undefined) {
-      return NextResponse.json(
-        { error: 'Missing required fields: deviceId, batteryLevel, isCharging' },
-        { status: 400 }
-      );
+    const deviceId = body?.deviceId || body?.device_id || body?.id;
+    const batteryLevel = body?.batteryLevel !== undefined ? body.batteryLevel : (body?.battery_level !== undefined ? body.battery_level : (body?.level !== undefined ? body.level : body?.battery));
+    const isCharging = body?.isCharging !== undefined ? body.isCharging : (body?.is_charging !== undefined ? body.is_charging : (body?.charging !== undefined ? body.charging : body?.plugged));
+    const name = body?.name;
+    const platform = body?.platform;
+
+    if (!deviceId) {
+      return NextResponse.json({ error: 'ขาดข้อมูลสำคัญ: deviceId (ไม่พบรหัสอุปกรณ์ใน JSON ที่ส่งมา)' }, { status: 400 });
+    }
+    if (batteryLevel === undefined || batteryLevel === null) {
+      return NextResponse.json({ error: 'ขาดข้อมูลสำคัญ: batteryLevel (ไม่พบระดับแบตเตอรี่ใน JSON ที่ส่งมา)' }, { status: 400 });
+    }
+    if (isCharging === undefined || isCharging === null) {
+      return NextResponse.json({ error: 'ขาดข้อมูลสำคัญ: isCharging (ไม่พบสถานะการชาร์จใน JSON ที่ส่งมา)' }, { status: 400 });
     }
 
     const isValidApiKey = await verifyApiKey(request, body as Record<string, unknown>);
@@ -37,24 +60,27 @@ export async function POST(request: Request) {
     const cleanName = name !== undefined ? String(name).trim() : undefined;
     const cleanPlatform = platform !== undefined ? String(platform).trim() : undefined;
 
-    if (String(batteryLevel).trim() === '[battery_level]' || String(isCharging).trim() === '[is_charging]') {
+    const rawBatteryStr = String(batteryLevel).trim();
+    const rawChargingStr = String(isCharging).trim();
+
+    if (rawBatteryStr.includes('[') || rawChargingStr.includes('[')) {
       return NextResponse.json(
-        { error: 'กรุณาแทนที่ค่า [battery_level] และ [is_charging] ด้วยตัวเลขหรือค่าจริงจากอุปกรณ์ก่อนส่งมอบ' },
+        { error: `ข้อผิดพลาด (400): ค่าที่ส่งมายังเป็นตัวปรข้อความดิบ (batteryLevel="${rawBatteryStr}", isCharging="${rawChargingStr}") กรุณาแทนที่ด้วยตัวเลขระดับแบตเตอรี่และสถานะ true/false จริงก่อนยิงข้อมูล` },
         { status: 400 }
       );
     }
 
-    const cleanedBatteryStr = String(batteryLevel).replace(/[^0-9.]/g, '');
+    const cleanedBatteryStr = rawBatteryStr.replace(/[^0-9.]/g, '');
     const currentBattery = Math.max(0, Math.min(100, Number(cleanedBatteryStr)));
     if (isNaN(currentBattery) || cleanedBatteryStr === '') {
-      return NextResponse.json({ error: 'Invalid batteryLevel value: กรุณาระบุตัวเลขระดับแบตเตอรี่ (0-100)' }, { status: 400 });
+      return NextResponse.json({ error: `ระดับแบตเตอรี่ไม่ถูกต้อง (batteryLevel="${rawBatteryStr}"): กรุณาระบุเป็นตัวเลข 0 - 100` }, { status: 400 });
     }
 
     let currentIsCharging = false;
     if (typeof isCharging === 'boolean') {
       currentIsCharging = isCharging;
     } else if (typeof isCharging === 'string') {
-      const val = isCharging.trim().toLowerCase();
+      const val = rawChargingStr.toLowerCase();
       currentIsCharging = val === 'true' || val === '1' || val === 'yes' || val === 'charging' || val === 'plugged' || val === 'on';
     } else if (typeof isCharging === 'number') {
       currentIsCharging = isCharging === 1;
