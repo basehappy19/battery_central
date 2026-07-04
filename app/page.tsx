@@ -883,41 +883,41 @@ export default function BatteryDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto space-y-8 sm:space-y-10">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-200">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-6 border-b border-slate-200">
+          <div className="space-y-4">
+            <div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
                 ระบบติดตามแบตเตอรี่
               </h1>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleOpenReorderModal}
-                  disabled={devices.length <= 1}
-                  className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm px-4 py-2 rounded-full border border-slate-300 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
-                  title="จัดเรียงหรือสลับตำแหน่งอุปกรณ์บนหน้าแรก"
-                >
-                  <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
-                  <span>จัดเรียงตำแหน่ง</span>
-                </button>
-                <button
-                  onClick={handleOpenModal}
-                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-full shadow-sm transition-colors cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>เพิ่มอุปกรณ์ใหม่</span>
-                </button>
-              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+                รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์
+              </p>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-              รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์
-            </p>
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={handleOpenReorderModal}
+                disabled={devices.length <= 1}
+                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm px-5 py-2.5 rounded-2xl border border-slate-300 shadow-sm transition-all hover:shadow cursor-pointer disabled:opacity-50"
+                title="จัดเรียงหรือสลับตำแหน่งอุปกรณ์บนหน้าแรก"
+              >
+                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                <span>จัดเรียงตำแหน่ง</span>
+              </button>
+              <button
+                onClick={handleOpenModal}
+                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>เพิ่มอุปกรณ์ใหม่</span>
+              </button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
-            <div className="flex items-center gap-2.5 bg-white px-4 py-2.5 rounded-full border border-slate-200/80 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-end">
+            <div className="flex items-center gap-2.5 bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-sm">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -938,7 +938,7 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
+              className={`bg-white rounded-3xl max-w-xl md:max-w-2xl w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto ${
                 isClosingReorderModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -1059,7 +1059,7 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
+              className={`bg-white rounded-3xl max-w-lg sm:max-w-xl w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto ${
                 isClosingRenameModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -1132,7 +1132,7 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
+              className={`bg-white rounded-3xl max-w-lg sm:max-w-xl w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto ${
                 isClosingDeleteModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -1193,7 +1193,7 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl ${createdResult ? "max-w-2xl" : "max-w-lg"} w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto transition-all duration-300 ${
+              className={`bg-white rounded-3xl ${createdResult ? "max-w-3xl" : "max-w-xl md:max-w-2xl"} w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto transition-all duration-300 ${
                 isClosingModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
