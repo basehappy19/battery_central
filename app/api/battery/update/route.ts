@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { Device } from '@prisma/client';
-import { checkRateLimit, getClientIp, verifyApiKey, sanitizeString } from '@/lib/security';
+import { verifyApiKey } from '@/lib/security';
 
 async function sendNotification(message: string): Promise<void> {
   console.log(`[ALERT NOTIFICATION]: ${message}`);
@@ -18,14 +18,8 @@ interface UpdatePayload {
 
 export async function POST(request: Request) {
   try {
-    const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`update_battery_${ip}`, 60, 60000);
-    if (!rateLimit.allowed) {
-      return NextResponse.json({ error: 'Too Many Requests: Rate limit exceeded' }, { status: 429 });
-    }
-
     const body = (await request.json()) as UpdatePayload;
-    const { deviceId, name, platform, batteryLevel, isCharging } = body;
+    const { deviceId, name, platform, batteryLevel, isCharging } = body || {};
 
     if (!deviceId || batteryLevel === undefined || isCharging === undefined) {
       return NextResponse.json(
@@ -39,9 +33,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: API Key ไม่ถูกต้อง กรุณาตรวจสอบรหัสลับจากหน้าระบบ' }, { status: 401 });
     }
 
-    const cleanDeviceId = sanitizeString(deviceId, 50);
-    const cleanName = name ? sanitizeString(name, 50) : undefined;
-    const cleanPlatform = platform ? sanitizeString(platform, 30) : undefined;
+    const cleanDeviceId = String(deviceId).trim();
+    const cleanName = name !== undefined ? String(name).trim() : undefined;
+    const cleanPlatform = platform !== undefined ? String(platform).trim() : undefined;
 
     const currentBattery = Math.max(0, Math.min(100, Number(batteryLevel)));
     if (isNaN(currentBattery)) {

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import type { Device, BatteryLog } from '@prisma/client';
-import { checkRateLimit, getClientIp, verifyDashboardAuth, sanitizeString } from '@/lib/security';
 
 type DeviceWithLogs = Device & {
   logs: BatteryLog[];
@@ -11,14 +10,8 @@ type DeviceWithLogs = Device & {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`get_devices_${ip}`, 120, 60000);
-    if (!rateLimit.allowed) {
-      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
-    }
-
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const now = new Date();
@@ -75,67 +68,54 @@ export async function GET(request: Request) {
           unpluggedCount++;
         }
 
-        if (
-          (l.eventType === 'PLUGGED_IN' ||
-            l.eventType === 'UNPLUGGED' ||
-            l.eventType === 'FULL_CHARGE' ||
-            l.eventType === 'RECONNECTED') &&
-          history.length < 10
-        ) {
-          let chargeGained: number | undefined = undefined;
-          let durationMinutes: number | undefined = undefined;
-          let offlineDurationMinutes: number | undefined = undefined;
-          let offlineSince: string | undefined = undefined;
+        let chargeGained: number | undefined;
+        let durationMinutes: number | undefined;
+        let offlineDurationMinutes: number | undefined;
+        let offlineSince: string | undefined;
 
-          if (l.eventType === 'UNPLUGGED') {
-            for (let j = i + 1; j < logs.length; j++) {
-              const prev = logs[j];
-              if (prev.eventType === 'PLUGGED_IN' || (prev.eventType === 'INITIAL' && prev.isCharging)) {
-                chargeGained = l.batteryLevel - prev.batteryLevel;
-                const timeDiffMs = l.createdAt.getTime() - prev.createdAt.getTime();
-                durationMinutes = Math.max(1, Math.round(timeDiffMs / (1000 * 60)));
-                break;
-              }
-            }
-          } else if (l.eventType === 'RECONNECTED') {
-            for (let j = i + 1; j < logs.length; j++) {
-              const prev = logs[j];
-              const timeDiffMs = l.createdAt.getTime() - prev.createdAt.getTime();
-              offlineDurationMinutes = Math.max(1, Math.round(timeDiffMs / (1000 * 60)));
-              offlineSince = prev.createdAt.toISOString();
+        if (l.eventType === 'RECONNECTED') {
+          const prevLog = logs[i + 1];
+          if (prevLog) {
+            const diffMs = l.createdAt.getTime() - prevLog.createdAt.getTime();
+            offlineDurationMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+            offlineSince = prevLog.createdAt.toISOString();
+          }
+        } else if (l.eventType === 'PLUGGED_IN') {
+          for (let j = i - 1; j >= 0; j--) {
+            const nextLog = logs[j];
+            if (nextLog.eventType === 'UNPLUGGED' || nextLog.eventType === 'FULL_CHARGE') {
+              const gained = nextLog.batteryLevel - l.batteryLevel;
+              if (gained > 0) chargeGained = gained;
+              const diffMs = nextLog.createdAt.getTime() - l.createdAt.getTime();
+              durationMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
               break;
             }
           }
-
-          history.push({
-            id: l.id,
-            batteryLevel: l.batteryLevel,
-            isCharging: l.isCharging,
-            eventType: l.eventType,
-            createdAt: l.createdAt.toISOString(),
-            chargeGained,
-            durationMinutes,
-            offlineDurationMinutes,
-            offlineSince,
-          });
         }
-      }
 
-      if (logs.length === 0) {
-        if (device.isCharging) pluggedCount = 1;
-        else unpluggedCount = 1;
+        history.push({
+          id: l.id,
+          batteryLevel: l.batteryLevel,
+          isCharging: l.isCharging,
+          eventType: l.eventType,
+          createdAt: l.createdAt.toISOString(),
+          chargeGained,
+          durationMinutes,
+          offlineDurationMinutes,
+          offlineSince,
+        });
       }
 
       const graphData = logs
         .slice()
         .reverse()
-        .map((l) => ({
+        .map((l: BatteryLog) => ({
           time: l.createdAt.toISOString(),
           level: l.batteryLevel,
           isCharging: l.isCharging,
         }));
 
-      if (graphData.length === 0 || graphData[graphData.length - 1].level !== device.batteryLevel) {
+      if (graphData.length === 0 || graphData[graphData.length - 1].time !== device.updatedAt.toISOString()) {
         graphData.push({
           time: device.updatedAt.toISOString(),
           level: device.batteryLevel,
@@ -196,22 +176,11 @@ interface PostPayload {
 
 export async function POST(request: Request) {
   try {
-    const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`post_devices_${ip}`, 30, 60000);
-    if (!rateLimit.allowed) {
-      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
-    }
-
-    const isAuthorized = await verifyDashboardAuth(request);
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid dashboard session token' }, { status: 401 });
-    }
-
     const body = (await request.json()) as PostPayload;
-    const { name, platform } = body;
+    const { name, platform } = body || {};
 
-    const cleanName = name ? sanitizeString(name, 50) : 'อุปกรณ์ใหม่';
-    const cleanPlatform = platform ? sanitizeString(platform, 30) : 'Android';
+    const cleanName = name && String(name).trim() ? String(name).trim() : 'อุปกรณ์ใหม่';
+    const cleanPlatform = platform && String(platform).trim() ? String(platform).trim() : 'Android';
 
     const randomHex = crypto.randomBytes(12).toString('hex');
     const newId = `bat-${randomHex.slice(0, 6)}-${randomHex.slice(6, 12)}-${randomHex.slice(12, 18)}-${randomHex.slice(18, 24)}`;
@@ -252,42 +221,27 @@ interface PatchPayload {
 
 export async function PATCH(request: Request) {
   try {
-    const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`patch_devices_${ip}`, 30, 60000);
-    if (!rateLimit.allowed) {
-      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
-    }
-
-    const isAuthorized = await verifyDashboardAuth(request);
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid dashboard session token' }, { status: 401 });
-    }
-
     const body = (await request.json()) as PatchPayload;
-    const { id, name, acceptingUpdates } = body;
+    const { id, name, acceptingUpdates } = body || {};
 
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'Missing or invalid device id' }, { status: 400 });
     }
 
-    const cleanId = sanitizeString(id, 50);
-    const cleanName = name !== undefined ? sanitizeString(name, 50) : undefined;
+    const cleanId = String(id).trim();
+    const cleanName = name !== undefined ? String(name).trim() : undefined;
 
-    const existingDevice = await prisma.device.findFirst({
-      where: { id: cleanId },
-    });
-
-    if (!existingDevice) {
-      return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ (Device Not Found)' }, { status: 404 });
-    }
-
-    await prisma.device.updateMany({
+    const updated = await prisma.device.updateMany({
       where: { id: cleanId },
       data: {
         ...(cleanName !== undefined && { name: cleanName }),
         ...(acceptingUpdates !== undefined && { acceptingUpdates: Boolean(acceptingUpdates) }),
       },
     });
+
+    if (updated.count === 0) {
+      return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ (Device Not Found)' }, { status: 404 });
+    }
 
     const updatedDevice = await prisma.device.findFirst({ where: { id: cleanId } });
     return NextResponse.json({ success: true, device: updatedDevice }, { status: 200 });
@@ -299,17 +253,6 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`delete_devices_${ip}`, 30, 60000);
-    if (!rateLimit.allowed) {
-      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
-    }
-
-    const isAuthorized = await verifyDashboardAuth(request);
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid dashboard session token' }, { status: 401 });
-    }
-
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
 
@@ -317,15 +260,19 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Missing or invalid device id' }, { status: 400 });
     }
 
-    const cleanId = sanitizeString(id, 50);
+    const cleanId = String(id).trim();
 
     await prisma.batteryLog.deleteMany({
       where: { deviceId: cleanId },
     });
 
-    await prisma.device.deleteMany({
+    const deleted = await prisma.device.deleteMany({
       where: { id: cleanId },
     });
+
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: unknown) {
@@ -340,30 +287,17 @@ interface PutOrderPayload {
 
 export async function PUT(request: Request) {
   try {
-    const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`put_devices_${ip}`, 30, 60000);
-    if (!rateLimit.allowed) {
-      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
-    }
-
-    const isAuthorized = await verifyDashboardAuth(request);
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid dashboard session token' }, { status: 401 });
-    }
-
     const body = (await request.json()) as PutOrderPayload;
-    const { order } = body;
+    const { order } = body || {};
 
     if (!order || !Array.isArray(order)) {
       return NextResponse.json({ error: 'Invalid order array' }, { status: 400 });
     }
 
-    const cleanOrder = order.map((id) => sanitizeString(String(id), 50));
-
     await prisma.$transaction(
-      cleanOrder.map((id, index) =>
+      order.map((id, index) =>
         prisma.device.updateMany({
-          where: { id },
+          where: { id: String(id).trim() },
           data: { order: index },
         })
       )

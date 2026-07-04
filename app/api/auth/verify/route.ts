@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { checkRateLimit, getClientIp } from '@/lib/security';
 
 interface AuthPayload {
   password?: string;
@@ -8,15 +7,6 @@ interface AuthPayload {
 
 export async function POST(request: Request) {
   try {
-    const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(`auth_${ip}`, 10, 60000); // Max 10 login attempts per minute per IP
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'เข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้ง' },
-        { status: 429 }
-      );
-    }
-
     const body = (await request.json()) as AuthPayload;
     const { password } = body;
 
