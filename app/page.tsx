@@ -1299,7 +1299,7 @@ export default function BatteryDashboard() {
               <form onSubmit={handleConfirmChangePassword} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    รหัสผ่านเดิม (Old Password) <span className="text-rose-500">*</span>
+                    รหัสผ่านเดิม <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -1313,7 +1313,7 @@ export default function BatteryDashboard() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    รหัสผ่านใหม่ (New Password) <span className="text-rose-500">*</span>
+                    รหัสผ่านใหม่ <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -1327,7 +1327,7 @@ export default function BatteryDashboard() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    ยืนยันรหัสผ่านใหม่ (Confirm New Password) <span className="text-rose-500">*</span>
+                    ยืนยันรหัสผ่านใหม่ <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -1402,11 +1402,11 @@ export default function BatteryDashboard() {
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80">
                       <div className="min-w-0 flex-1">
-                        <span className="text-slate-500 block text-xs uppercase font-sans font-bold tracking-wider">รหัสเครื่อง (DEVICE ID)</span>
+                        <span className="text-slate-500 block text-xs uppercase font-sans font-bold tracking-wider">รหัสเครื่อง</span>
                         <span className="font-mono font-bold text-slate-900 text-base sm:text-lg mt-1 block break-all">{createdResult.id}</span>
                       </div>
                       <button
-                        onClick={() => copyToClipboard(createdResult.id, "รหัสเครื่อง (Device ID)")}
+                        onClick={() => copyToClipboard(createdResult.id, "รหัสเครื่อง")}
                         className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold font-sans text-xs sm:text-sm cursor-pointer transition-colors shadow-sm shrink-0"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1418,11 +1418,11 @@ export default function BatteryDashboard() {
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80">
                       <div className="min-w-0 flex-1">
-                        <span className="text-slate-500 block text-xs uppercase font-sans font-bold tracking-wider">รหัสลับ API (SECRET KEY)</span>
+                        <span className="text-slate-500 block text-xs uppercase font-sans font-bold tracking-wider">รหัสลับ API</span>
                         <span className="font-mono font-bold text-slate-900 text-base sm:text-lg mt-1 block break-all">{createdResult.apiKey}</span>
                       </div>
                       <button
-                        onClick={() => copyToClipboard(createdResult.apiKey, "รหัสลับ API (Secret Key)")}
+                        onClick={() => copyToClipboard(createdResult.apiKey, "รหัสลับ API")}
                         className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold font-sans text-xs sm:text-sm cursor-pointer transition-colors shadow-sm shrink-0"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1493,7 +1493,7 @@ export default function BatteryDashboard() {
                         <option value="iOS">iOS (iPhone / iPad)</option>
                         <option value="macOS">macOS (MacBook)</option>
                         <option value="ESP32">ESP32 / IoT Sensor</option>
-                        <option value="Other">อื่นๆ (Other)</option>
+                        <option value="Other">อื่นๆ</option>
                       </select>
                     </div>
 
