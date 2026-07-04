@@ -564,8 +564,22 @@ export default function BatteryDashboard() {
     fetchDevices(true);
     const interval = setInterval(() => {
       fetchDevices(false);
-    }, 10000);
-    return () => clearInterval(interval);
+    }, 2000);
+
+    const handleFocus = () => fetchDevices(false);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchDevices(false);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [authenticated, fetchDevices]);
 
   const handleToggleExpand = useCallback((id: string): void => {
@@ -1004,15 +1018,19 @@ export default function BatteryDashboard() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-end">
-            <div className="flex items-center gap-2.5 bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <button
+              onClick={() => fetchDevices(false)}
+              title="คลิกเพื่อรีเฟรชข้อมูลทันที"
+              className="flex items-center gap-2.5 bg-white hover:bg-slate-50 transition-colors px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-sm cursor-pointer"
+            >
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-xs font-mono text-slate-500">
-                อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              <span className="text-xs font-mono font-semibold text-slate-600">
+                ⚡ เรียลไทม์ | อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
               </span>
-            </div>
+            </button>
           </div>
         </header>
 
