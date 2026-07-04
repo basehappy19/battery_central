@@ -53,6 +53,13 @@ interface Device {
   todayStats?: TodayStats;
 }
 
+interface ToastItem {
+  id: number;
+  type: 'success' | 'error' | 'info';
+  message: string;
+  isClosing?: boolean;
+}
+
 const getBatteryColor = (level: number, isOffline?: boolean): string => {
   if (isOffline) return "bg-slate-400 shadow-sm shadow-slate-400/20";
   if (level > 50) return "bg-emerald-500 shadow-sm shadow-emerald-500/20";
@@ -101,7 +108,7 @@ const formatEventType = (evt: HistoryEvent): string => {
       return base;
     }
     case 'RECONNECTED': {
-      let base = `🟢 กลับมาเชื่อมต่อ (${level}%)`;
+      let base = `กลับมาเชื่อมต่อระบบ (${level}%)`;
       if (evt.offlineDurationMinutes !== undefined && evt.offlineSince) {
         const sinceTime = new Date(evt.offlineSince).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         const timeStr = formatDuration(evt.offlineDurationMinutes);
@@ -110,7 +117,7 @@ const formatEventType = (evt: HistoryEvent): string => {
       return base;
     }
     case 'FULL_CHARGE':
-      return `ชาร์จเต็ม 100%`;
+      return `ชาร์จแบตเตอรี่เต็ม (100%)`;
     default:
       return `บันทึกสถานะ (${level}%)`;
   }
@@ -258,9 +265,10 @@ interface DeviceCardProps {
   onRename: (id: string, newName: string) => Promise<void>;
   onToggleAccept: (id: string, currentStatus: boolean) => Promise<void>;
   onDelete: (id: string, name: string) => Promise<void>;
+  onToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept, onDelete }: DeviceCardProps) => {
+const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept, onDelete, onToast }: DeviceCardProps) => {
   const style = useMemo(() => getPlatformStyle(device.platform, device.isOffline), [device.platform, device.isOffline]);
   const timeFormatted = useMemo(() => formatTimeRemaining(device.timeRemaining, device.isCharging, device.isOffline), [device.timeRemaining, device.isCharging, device.isOffline]);
   const batteryColor = useMemo(() => getBatteryColor(device.batteryLevel, device.isOffline), [device.batteryLevel, device.isOffline]);
@@ -277,6 +285,7 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
     }
     setSaving(true);
     await onRename(device.id, editName);
+    onToast('เปลี่ยนชื่ออุปกรณ์เรียบร้อยแล้ว', 'success');
     setSaving(false);
     setIsEditing(false);
   };
@@ -291,30 +300,34 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
             </div>
             <div className="min-w-0 flex-1">
               {isEditing ? (
-                <div className="flex items-center gap-1 sm:gap-1.5 mt-0.5">
+                <div className="flex items-center gap-1.5 mt-0.5">
                   <input
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     disabled={saving}
-                    className="w-full text-xs sm:text-sm font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    className="w-full text-xs sm:text-sm font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300 focus:outline-none focus:border-emerald-500"
                     autoFocus
                   />
                   <button
                     onClick={handleSaveName}
                     disabled={saving}
-                    className="p-1 sm:px-2 text-emerald-600 hover:text-emerald-700 font-bold text-xs bg-emerald-50 rounded border border-emerald-200 cursor-pointer"
+                    className="p-1.5 text-emerald-600 hover:text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 cursor-pointer"
                     title="บันทึก"
                   >
-                    ✓
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
                   </button>
                   <button
                     onClick={() => { setIsEditing(false); setEditName(device.name); }}
                     disabled={saving}
-                    className="p-1 sm:px-2 text-rose-600 hover:text-rose-700 font-bold text-xs bg-rose-50 rounded border border-rose-200 cursor-pointer"
+                    className="p-1.5 text-rose-600 hover:text-rose-700 bg-rose-50 rounded-lg border border-rose-200 cursor-pointer"
                     title="ยกเลิก"
                   >
-                    ✕
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
               ) : (
@@ -333,12 +346,12 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
                   </button>
                 </div>
               )}
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block">
                   {device.platform}
                 </span>
                 {device.isOffline && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-300">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
                     ขาดการติดต่อ ~{formatDuration(device.offlineDurationMinutes || 0)}
                   </span>
@@ -347,10 +360,13 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex flex-col items-end gap-2 shrink-0">
             <button
-              onClick={() => onToggleAccept(device.id, device.acceptingUpdates)}
-              className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1.5 ${device.acceptingUpdates ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-200 text-slate-600 border-slate-300"}`}
+              onClick={() => {
+                onToggleAccept(device.id, device.acceptingUpdates);
+                onToast(device.acceptingUpdates ? 'ปิดรับข้อมูลอัปเดตแล้ว' : 'เปิดรับข้อมูลอัปเดตแล้ว', 'info');
+              }}
+              className={`px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1.5 ${device.acceptingUpdates ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-200 text-slate-600 border-slate-300"}`}
               title="กดเพื่อเปิด/ปิดรับข้อมูลอัปเดตจากอุปกรณ์นี้"
             >
               <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${device.acceptingUpdates ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}></span>
@@ -358,10 +374,13 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
             </button>
             <button
               onClick={() => onDelete(device.id, device.name)}
-              className="text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 hover:text-rose-700 px-2.5 py-1 rounded-md bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
               title="ลบอุปกรณ์นี้ออกจากระบบ"
             >
-              🗑️ ลบเครื่อง
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>ลบอุปกรณ์</span>
             </button>
           </div>
         </div>
@@ -377,7 +396,8 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
             </span>
           )}
           {device.isOffline && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+              <span className="w-2 h-2 rounded-full bg-slate-400"></span>
               ออฟไลน์
             </span>
           )}
@@ -391,8 +411,8 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
         </div>
 
         {device.isOffline ? (
-          <div className="mt-4 sm:mt-5 flex items-center gap-2 text-xs sm:text-sm font-bold text-amber-800 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200/80 shadow-2xs">
-            <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mt-4 sm:mt-5 flex items-center gap-2 text-xs sm:text-sm font-bold text-amber-900 bg-amber-50/90 px-4 py-2.5 rounded-xl border border-amber-200">
+            <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <span>
@@ -475,7 +495,7 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
       <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm text-slate-400 font-mono">
         <span>รหัส: {device.id}</span>
         <span>
-          ใช้งานล่าสุด: {new Date(device.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+          <span className="font-sans font-semibold">ใช้งานล่าสุด:</span> {new Date(device.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
       </div>
     </div>
@@ -497,13 +517,27 @@ export default function BatteryDashboard() {
   const [authError, setAuthError] = useState<string>("");
   const [verifying, setVerifying] = useState<boolean>(false);
 
-  // Add Device Modal State
+  // Add Device Modal State & Animation
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isClosingModal, setIsClosingModal] = useState(false);
   const [newDeviceName, setNewDeviceName] = useState("");
   const [newDevicePlatform, setNewDevicePlatform] = useState("Android");
   const [creatingDevice, setCreatingDevice] = useState(false);
   const [createdResult, setCreatedResult] = useState<{ id: string; name: string; apiKey: string } | null>(null);
-  const [copySuccess, setCopySuccess] = useState<string>("");
+
+  // Toast System
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, isClosing: true } : t)));
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 200);
+    }, 3000);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("dashboard_auth");
@@ -529,6 +563,7 @@ export default function BatteryDashboard() {
       if (res.ok && data.success && data.token) {
         localStorage.setItem("dashboard_auth", data.token);
         setAuthenticated(true);
+        showToast("เข้าสู่ระบบเรียบร้อยแล้ว", "success");
       } else {
         setAuthError(data.error || "รหัสผ่านไม่ถูกต้อง");
       }
@@ -616,11 +651,29 @@ export default function BatteryDashboard() {
       });
       if (res.ok) {
         setDevices((prev) => prev.filter((d) => d.id !== id));
+        showToast(`ลบอุปกรณ์ "${name}" ออกจากระบบแล้ว`, "info");
+      } else {
+        showToast("ไม่สามารถลบอุปกรณ์ได้ กรุณาลองใหม่", "error");
       }
     } catch (err) {
       console.error("Failed to delete device:", err);
+      showToast("เกิดข้อผิดพลาดในการลบอุปกรณ์", "error");
     }
-  }, []);
+  }, [showToast]);
+
+  const handleOpenModal = () => {
+    setCreatedResult(null);
+    setIsClosingModal(false);
+    setShowAddModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsClosingModal(true);
+    setTimeout(() => {
+      setShowAddModal(false);
+      setIsClosingModal(false);
+    }, 150);
+  };
 
   const handleCreateDevice = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -638,7 +691,7 @@ export default function BatteryDashboard() {
         },
         body: JSON.stringify({ name: newDeviceName, platform: newDevicePlatform }),
       });
-      const data = (await res.json()) as { success?: boolean; device?: Device; apiKey?: string };
+      const data = (await res.json()) as { success?: boolean; device?: Device; apiKey?: string; error?: string };
       if (res.ok && data.success && data.device) {
         setDevices((prev) => [data.device!, ...prev]);
         setCreatedResult({
@@ -647,9 +700,13 @@ export default function BatteryDashboard() {
           apiKey: data.apiKey || systemApiKey,
         });
         setNewDeviceName("");
+        showToast(`ลงทะเบียนอุปกรณ์ "${data.device.name}" สำเร็จ`, "success");
+      } else {
+        showToast(data.error || "ไม่สามารถลงทะเบียนอุปกรณ์ได้", "error");
       }
     } catch (err) {
       console.error("Failed to create device:", err);
+      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", "error");
     } finally {
       setCreatingDevice(false);
     }
@@ -657,8 +714,7 @@ export default function BatteryDashboard() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    setCopySuccess(`คัดลอก ${label} แล้ว!`);
-    setTimeout(() => setCopySuccess(""), 3000);
+    showToast(`คัดลอก ${label} แล้ว`, "success");
   };
 
   if (authChecking) {
@@ -705,7 +761,42 @@ export default function BatteryDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-6 md:p-10 lg:p-12 font-sans selection:bg-slate-200">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-6 md:p-10 lg:p-12 pb-24 font-sans selection:bg-slate-200">
+      {/* Toast Notification Container */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border backdrop-blur-md text-xs sm:text-sm font-semibold transition-all ${
+              toast.isClosing ? "animate-toast-out" : "animate-toast-in"
+            } ${
+              toast.type === "success"
+                ? "bg-slate-900/95 text-white border-slate-700 shadow-slate-900/20"
+                : toast.type === "error"
+                ? "bg-rose-900/95 text-white border-rose-700 shadow-rose-900/20"
+                : "bg-slate-800/95 text-slate-100 border-slate-600 shadow-slate-800/20"
+            }`}
+          >
+            {toast.type === "success" && (
+              <svg className="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {toast.type === "error" && (
+              <svg className="w-5 h-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {toast.type === "info" && (
+              <svg className="w-5 h-5 text-sky-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            <span>{toast.message}</span>
+          </div>
+        ))}
+      </div>
+
       <div className="max-w-7xl mx-auto space-y-8 sm:space-y-10">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-200">
           <div>
@@ -714,26 +805,32 @@ export default function BatteryDashboard() {
                 ระบบติดตามแบตเตอรี่
               </h1>
               <button
-                onClick={() => { setShowAddModal(true); setCreatedResult(null); }}
-                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-full shadow-sm transition-colors cursor-pointer"
+                onClick={handleOpenModal}
+                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-full shadow-sm transition-colors cursor-pointer"
               >
-                <span>➕ เพิ่มอุปกรณ์ใหม่</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>เพิ่มอุปกรณ์ใหม่</span>
               </button>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-              รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์ (บังคับตรวจ ID & Secret Key)
+              รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์ (บังคับตรวจ ID และ Secret Key)
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
             <div
-              onClick={() => copyToClipboard(systemApiKey, "API Secret Key")}
-              className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full border border-slate-800 shadow-sm cursor-pointer hover:bg-slate-800 transition-colors"
-              title="คลิกเพื่อคัดลอก API Secret Key สำหรับใส่ใน MacroDroid"
+              onClick={() => copyToClipboard(systemApiKey, "รหัสลับ API")}
+              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-full border border-slate-800 shadow-sm cursor-pointer hover:bg-slate-800 transition-colors"
+              title="คลิกเพื่อคัดลอกรหัสลับ API สำหรับใส่ใน MacroDroid"
             >
-              <span className="text-xs font-mono">🔑 API Key: <code className="text-emerald-400">{systemApiKey}</code></span>
-              <span className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">📋 คัดลอก</span>
+              <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              <span className="text-xs font-mono">รหัสลับ API: <code className="text-emerald-400">{systemApiKey}</code></span>
+              <span className="text-[10px] bg-slate-700 px-2 py-0.5 rounded text-slate-200">คัดลอก</span>
             </div>
-            <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full border border-slate-200/80 shadow-sm">
+            <div className="flex items-center gap-2.5 bg-white px-4 py-2.5 rounded-full border border-slate-200/80 shadow-sm">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -745,59 +842,82 @@ export default function BatteryDashboard() {
           </div>
         </header>
 
-        {copySuccess && (
-          <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 z-50 animate-bounce">
-            ✓ {copySuccess}
-          </div>
-        )}
-
         {showAddModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative">
+          <div
+            onClick={handleCloseModal}
+            className={`fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 ${
+              isClosingModal ? "animate-fade-out" : "animate-fade-in"
+            }`}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative ${
+                isClosingModal ? "animate-modal-out" : "animate-modal-in"
+              }`}
+            >
               <button
-                onClick={() => setShowAddModal(false)}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold text-lg p-1"
+                onClick={handleCloseModal}
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold text-lg p-1 transition-colors cursor-pointer"
               >
-                ✕
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
 
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">➕ เพิ่มอุปกรณ์ใหม่ในระบบ</h2>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-200 shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">ลงทะเบียนอุปกรณ์ใหม่</h2>
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 mb-6">
                 ระบบไม่อนุญาตให้อุปกรณ์สร้าง ID เองอัตโนมัติอีกต่อไป กรุณาสร้างอุปกรณ์ที่นี่และนำ ID ที่ได้ไปตั้งค่าใน MacroDroid
               </p>
 
               {createdResult ? (
                 <div className="space-y-4 bg-emerald-50/80 p-5 rounded-2xl border border-emerald-200 animate-fadeIn">
-                  <div className="text-center pb-2 border-b border-emerald-200/60">
-                    <span className="text-2xl block mb-1">🎉</span>
-                    <h3 className="font-bold text-emerald-800 text-base">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; สำเร็จ!</h3>
-                    <p className="text-xs text-emerald-600 mt-0.5">นำค่าด้านล่างไปใส่ใน MacroDroid หรือตัวส่งข้อมูลของคุณ</p>
+                  <div className="text-center pb-3 border-b border-emerald-200/60 flex flex-col items-center">
+                    <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mb-2 shadow-sm">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <h3 className="font-bold text-emerald-900 text-base">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; เสร็สมบูรณ์</h3>
+                    <p className="text-xs text-emerald-700 mt-0.5">นำค่าด้านล่างไปตั้งค่าใน MacroDroid หรือแอปพลิเคชันของคุณ</p>
                   </div>
 
                   <div className="space-y-2.5 text-xs font-mono">
                     <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200">
                       <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold">Device ID (รหัสเครื่อง)</span>
+                        <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold">รหัสเครื่อง (Device ID)</span>
                         <span className="font-bold text-slate-900 text-sm">{createdResult.id}</span>
                       </div>
                       <button
-                        onClick={() => copyToClipboard(createdResult.id, "Device ID")}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold font-sans text-xs cursor-pointer"
+                        onClick={() => copyToClipboard(createdResult.id, "รหัสเครื่อง (Device ID)")}
+                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold font-sans text-xs cursor-pointer transition-colors"
                       >
-                        📋 คัดลอก ID
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>คัดลอก</span>
                       </button>
                     </div>
 
                     <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200">
                       <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold">API Secret Key</span>
+                        <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold">รหัสลับ API (Secret Key)</span>
                         <span className="font-bold text-slate-900 text-sm">{createdResult.apiKey}</span>
                       </div>
                       <button
-                        onClick={() => copyToClipboard(createdResult.apiKey, "API Secret Key")}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold font-sans text-xs cursor-pointer"
+                        onClick={() => copyToClipboard(createdResult.apiKey, "รหัสลับ API (Secret Key)")}
+                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold font-sans text-xs cursor-pointer transition-colors"
                       >
-                        📋 คัดลอก Key
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>คัดลอก</span>
                       </button>
                     </div>
                   </div>
@@ -815,7 +935,7 @@ export default function BatteryDashboard() {
                   </div>
 
                   <button
-                    onClick={() => { setShowAddModal(false); setCreatedResult(null); }}
+                    onClick={handleCloseModal}
                     className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer mt-2"
                   >
                     ปิดหน้าต่างและกลับสู่แดชบอร์ด
@@ -825,7 +945,7 @@ export default function BatteryDashboard() {
                 <form onSubmit={handleCreateDevice} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      ชื่ออุปกรณ์ (เช่น มือถือ Galaxy S24 Ultra, แท็บเล็ตทำงาน)
+                      ชื่ออุปกรณ์ (เช่น มือถือ GALAXY S24 ULTRA, แท็บเล็ตทำงาน)
                     </label>
                     <input
                       type="text"
@@ -859,7 +979,7 @@ export default function BatteryDashboard() {
                   <div className="pt-3 flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setShowAddModal(false)}
+                      onClick={handleCloseModal}
                       className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
                     >
                       ยกเลิก
@@ -867,9 +987,18 @@ export default function BatteryDashboard() {
                     <button
                       type="submit"
                       disabled={creatingDevice}
-                      className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                      className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
                     >
-                      {creatingDevice ? "กำลังสร้าง ID..." : "✓ สร้างและรับ ID"}
+                      {creatingDevice ? (
+                        <span>กำลังสร้างรหัส...</span>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>สร้างและรับรหัส ID</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
@@ -888,7 +1017,7 @@ export default function BatteryDashboard() {
           <div className="text-center py-20 bg-white rounded-2xl sm:rounded-3xl border border-dashed border-slate-300 shadow-sm p-6">
             <p className="text-slate-600 font-semibold text-base sm:text-lg">ยังไม่มีอุปกรณ์เชื่อมต่อในระบบ</p>
             <p className="text-xs sm:text-sm text-slate-400 mt-1.5">
-              กดปุ่ม <span className="text-emerald-600 font-bold">&quot;➕ เพิ่มอุปกรณ์ใหม่&quot;</span> ด้านบนเพื่อสร้างรหัส ID สำหรับเชื่อมต่อ MacroDroid
+              กดปุ่ม <span className="text-emerald-600 font-bold">&quot;เพิ่มอุปกรณ์ใหม่&quot;</span> ด้านบนเพื่อสร้างรหัส ID สำหรับเชื่อมต่อ MacroDroid
             </p>
           </div>
         ) : (
@@ -902,6 +1031,7 @@ export default function BatteryDashboard() {
                 onRename={handleRenameDevice}
                 onToggleAccept={handleToggleAccept}
                 onDelete={handleDeleteDevice}
+                onToast={showToast}
               />
             ))}
           </div>
