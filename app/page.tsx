@@ -437,9 +437,8 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRen
         </div>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm text-slate-400 font-mono">
-        <span className="truncate max-w-[50%]" title={device.id}>{device.id}</span>
-        <span className="shrink-0">
+      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end text-xs sm:text-sm text-slate-400 font-mono">
+        <span>
           <span className="font-sans font-semibold">ใช้งานล่าสุด:</span> {new Date(device.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
       </div>
@@ -1091,7 +1090,6 @@ export default function BatteryDashboard() {
                     className="w-full px-4 py-3.5 rounded-2xl border border-slate-300 focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-bold text-slate-900 bg-slate-50 focus:bg-white transition-colors shadow-inner"
                     autoFocus
                   />
-                  <p className="text-[11px] font-mono text-slate-400 mt-2">{renameTarget.id}</p>
                 </div>
 
                 <div className="pt-2 flex items-center gap-3">
@@ -1153,7 +1151,6 @@ export default function BatteryDashboard() {
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-6 text-xs sm:text-sm text-slate-600 space-y-1.5">
                 <p>ต้องการลบอุปกรณ์ <span className="font-bold text-slate-900">&quot;{deleteTarget.name}&quot;</span> ออกจากระบบหรือไม่?</p>
                 <p className="text-xs text-rose-600 font-medium">ประวัติสถานะแบตเตอรี่และกราฟทั้งหมดของอุปกรณ์นี้จะถูกลบถาวร</p>
-                <p className="text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-200">{deleteTarget.id}</p>
               </div>
 
               <div className="flex items-center gap-3">

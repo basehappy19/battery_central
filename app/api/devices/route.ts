@@ -324,19 +324,11 @@ export async function DELETE(request: Request) {
 
     const cleanId = sanitizeString(id, 50);
 
-    const existingDevice = await prisma.device.findUnique({
-      where: { id: cleanId },
-    });
-
-    if (!existingDevice) {
-      return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ (Device Not Found)' }, { status: 404 });
-    }
-
     await prisma.batteryLog.deleteMany({
       where: { deviceId: cleanId },
     });
 
-    await prisma.device.delete({
+    await prisma.device.deleteMany({
       where: { id: cleanId },
     });
 
