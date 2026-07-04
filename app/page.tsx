@@ -1446,7 +1446,7 @@ export default function BatteryDashboard() {
                         <span>คัดลอก JSON</span>
                       </button>
                     </div>
-                    <pre className="overflow-x-auto text-emerald-400 font-semibold pt-1">
+                    <pre className="whitespace-pre-wrap break-all text-emerald-400 font-semibold pt-2 text-xs sm:text-sm leading-relaxed">
 {`{
   "deviceId": "${createdResult.id}",
   "apiKey": "${createdResult.apiKey}",
