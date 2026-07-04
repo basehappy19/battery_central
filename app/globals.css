@@ -10,6 +10,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-prompt), sans-serif;
   --font-mono: var(--font-geist-mono);
+
+  --animate-modal-in: modal-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-modal-out: modal-out 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-toast-in: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-toast-out: toast-out 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in: fade-in 0.25s ease-out forwards;
+  --animate-fade-out: fade-out 0.2s ease-in forwards;
+  --animate-charging: charging-wave 0.8s linear infinite;
 }
 
 body {
@@ -39,14 +47,14 @@ body {
     transparent
   );
   background-size: 28px 28px;
-  animation: charging-wave 0.8s linear infinite;
+  animation: var(--animate-charging);
   will-change: background-position;
 }
 
 @keyframes modal-in {
   0% {
     opacity: 0;
-    transform: scale(0.96) translateY(10px);
+    transform: scale(0.95) translateY(12px);
   }
   100% {
     opacity: 1;
@@ -61,14 +69,14 @@ body {
   }
   100% {
     opacity: 0;
-    transform: scale(0.96) translateY(10px);
+    transform: scale(0.95) translateY(12px);
   }
 }
 
 @keyframes toast-in {
   0% {
     opacity: 0;
-    transform: translateY(16px) scale(0.95);
+    transform: translateY(20px) scale(0.95);
   }
   100% {
     opacity: 1;
@@ -83,7 +91,7 @@ body {
   }
   100% {
     opacity: 0;
-    transform: translateY(16px) scale(0.95);
+    transform: translateY(20px) scale(0.95);
   }
 }
 
@@ -103,28 +111,4 @@ body {
   to {
     opacity: 0;
   }
-}
-
-.animate-modal-in {
-  animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-modal-out {
-  animation: modal-out 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-toast-in {
-  animation: toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-toast-out {
-  animation: toast-out 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-fade-in {
-  animation: fade-in 0.2s ease-out forwards;
-}
-
-.animate-fade-out {
-  animation: fade-out 0.15s ease-in forwards;
 }

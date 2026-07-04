@@ -616,11 +616,16 @@ export default function BatteryDashboard() {
       });
       if (res.ok) {
         setDevices((prev) => prev.map((d) => (d.id === id ? { ...d, name: newName } : d)));
+      } else {
+        const data = (await res.json()) as { error?: string };
+        showToast(data.error || "ไม่สามารถเปลี่ยนชื่ออุปกรณ์ได้", "error");
+        fetchDevices(false);
       }
     } catch (err) {
       console.error("Failed to rename device:", err);
+      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
     }
-  }, []);
+  }, [showToast, fetchDevices]);
 
   const handleToggleAccept = useCallback(async (id: string, currentStatus: boolean): Promise<void> => {
     try {
@@ -635,11 +640,16 @@ export default function BatteryDashboard() {
       });
       if (res.ok) {
         setDevices((prev) => prev.map((d) => (d.id === id ? { ...d, acceptingUpdates: !currentStatus } : d)));
+      } else {
+        const data = (await res.json()) as { error?: string };
+        showToast(data.error || "ไม่สามารถอัปเดตสถานะได้", "error");
+        fetchDevices(false);
       }
     } catch (err) {
       console.error("Failed to toggle accepting updates:", err);
+      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
     }
-  }, []);
+  }, [showToast, fetchDevices]);
 
   const handleDeleteDevice = useCallback(async (id: string, name: string): Promise<void> => {
     if (!window.confirm(`ต้องการลบอุปกรณ์ "${name}" (ID: ${id}) และประวัติทั้งหมดออกจากระบบหรือไม่?`)) return;
@@ -653,13 +663,15 @@ export default function BatteryDashboard() {
         setDevices((prev) => prev.filter((d) => d.id !== id));
         showToast(`ลบอุปกรณ์ "${name}" ออกจากระบบแล้ว`, "info");
       } else {
-        showToast("ไม่สามารถลบอุปกรณ์ได้ กรุณาลองใหม่", "error");
+        const data = (await res.json()) as { error?: string };
+        showToast(data.error || "ไม่สามารถลบอุปกรณ์ได้ กรุณาลองใหม่", "error");
+        fetchDevices(false);
       }
     } catch (err) {
       console.error("Failed to delete device:", err);
       showToast("เกิดข้อผิดพลาดในการลบอุปกรณ์", "error");
     }
-  }, [showToast]);
+  }, [showToast, fetchDevices]);
 
   const handleOpenModal = () => {
     setCreatedResult(null);
@@ -845,13 +857,13 @@ export default function BatteryDashboard() {
         {showAddModal && (
           <div
             onClick={handleCloseModal}
-            className={`fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 ${
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
               isClosingModal ? "animate-fade-out" : "animate-fade-in"
             }`}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative ${
+              className={`bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
                 isClosingModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -864,7 +876,7 @@ export default function BatteryDashboard() {
                 </svg>
               </button>
 
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-200 shrink-0">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -872,9 +884,6 @@ export default function BatteryDashboard() {
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900">ลงทะเบียนอุปกรณ์ใหม่</h2>
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-6">
-                ระบบไม่อนุญาตให้อุปกรณ์สร้าง ID เองอัตโนมัติอีกต่อไป กรุณาสร้างอุปกรณ์ที่นี่และนำ ID ที่ได้ไปตั้งค่าใน MacroDroid
-              </p>
 
               {createdResult ? (
                 <div className="space-y-4 bg-emerald-50/80 p-5 rounded-2xl border border-emerald-200 animate-fadeIn">
@@ -884,7 +893,7 @@ export default function BatteryDashboard() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <h3 className="font-bold text-emerald-900 text-base">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; เสร็สมบูรณ์</h3>
+                    <h3 className="font-bold text-emerald-900 text-base">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; เสร็จสมบูรณ์</h3>
                     <p className="text-xs text-emerald-700 mt-0.5">นำค่าด้านล่างไปตั้งค่าใน MacroDroid หรือแอปพลิเคชันของคุณ</p>
                   </div>
 

@@ -206,7 +206,6 @@ export async function POST(request: Request) {
     const cleanName = name ? sanitizeString(name, 50) : 'อุปกรณ์ใหม่';
     const cleanPlatform = platform ? sanitizeString(platform, 30) : 'Android';
 
-    // Generate unique ID: bat- + 6 random alphanumeric characters
     const randomHex = Math.random().toString(36).substring(2, 8).toLowerCase();
     const newId = `bat-${randomHex}`;
 
@@ -260,6 +259,14 @@ export async function PATCH(request: Request) {
     const cleanId = sanitizeString(id, 50);
     const cleanName = name !== undefined ? sanitizeString(name, 50) : undefined;
 
+    const existingDevice = await prisma.device.findUnique({
+      where: { id: cleanId },
+    });
+
+    if (!existingDevice) {
+      return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ (Device Not Found)' }, { status: 404 });
+    }
+
     const updated = await prisma.device.update({
       where: { id: cleanId },
       data: {
@@ -296,6 +303,14 @@ export async function DELETE(request: Request) {
     }
 
     const cleanId = sanitizeString(id, 50);
+
+    const existingDevice = await prisma.device.findUnique({
+      where: { id: cleanId },
+    });
+
+    if (!existingDevice) {
+      return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ (Device Not Found)' }, { status: 404 });
+    }
 
     await prisma.batteryLog.deleteMany({
       where: { deviceId: cleanId },
