@@ -7,16 +7,17 @@ generator client {
 }
 
 model Device {
-  id            String       @id @default(uuid())
-  name          String
-  platform      String       // e.g., "Windows", "iOS", "Android", "ESP32"
-  batteryLevel  Int          // 0-100
-  isCharging    Boolean
-  prevBattery   Int?         // Previous battery level for rate calculation
-  prevUpdatedAt DateTime?    // Previous update timestamp for rate calculation
-  timeRemaining Int?         // Estimated minutes remaining (to full or empty)
-  updatedAt     DateTime     @updatedAt
-  logs          BatteryLog[]
+  id               String       @id @default(uuid())
+  name             String
+  platform         String       // e.g., "Windows", "iOS", "Android", "ESP32"
+  batteryLevel     Int          // 0-100
+  isCharging       Boolean
+  prevBattery      Int?         // Previous battery level for rate calculation
+  prevUpdatedAt    DateTime?    // Previous update timestamp for rate calculation
+  timeRemaining    Int?         // Estimated minutes remaining (to full or empty)
+  acceptingUpdates Boolean      @default(true) // Enable/disable receiving requests
+  updatedAt        DateTime     @updatedAt
+  logs             BatteryLog[]
 }
 
 model BatteryLog {

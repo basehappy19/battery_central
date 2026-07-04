@@ -34,6 +34,13 @@ export async function POST(request: Request) {
       where: { id: deviceId },
     });
 
+    if (existingDevice && existingDevice.acceptingUpdates === false) {
+      return NextResponse.json(
+        { error: 'Device updates are currently disabled by user' },
+        { status: 403 }
+      );
+    }
+
     let timeRemaining: number | null = null;
     let prevBattery: number | null = null;
     let prevUpdatedAt: Date | null = null;
@@ -44,6 +51,8 @@ export async function POST(request: Request) {
         eventType = 'FULL_CHARGE';
       } else if (currentIsCharging) {
         eventType = 'PLUGGED_IN';
+      } else {
+        eventType = 'INITIAL';
       }
     } else {
       prevBattery = existingDevice.batteryLevel;
@@ -61,6 +70,8 @@ export async function POST(request: Request) {
         eventType = 'FULL_CHARGE';
         const deviceName = existingDevice.name || `Device (${deviceId.slice(0, 6)})`;
         await sendNotification(`${deviceName} ชาร์จเต็ม 100%`);
+      } else if (existingDevice.batteryLevel !== currentBattery) {
+        eventType = 'LEVEL_UPDATE';
       }
 
       if (
@@ -110,6 +121,7 @@ export async function POST(request: Request) {
         prevBattery: null,
         prevUpdatedAt: null,
         timeRemaining: null,
+        acceptingUpdates: true,
       },
     });
 

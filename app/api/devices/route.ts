@@ -72,6 +72,25 @@ export async function GET() {
         else unpluggedCount = 1;
       }
 
+      // Graph data: chronological order (asc) from start of today
+      const graphData = logs
+        .slice()
+        .reverse()
+        .map((l) => ({
+          time: l.createdAt.toISOString(),
+          level: l.batteryLevel,
+          isCharging: l.isCharging,
+        }));
+
+      // Add current state as the latest point if not already present
+      if (graphData.length === 0 || graphData[graphData.length - 1].level !== device.batteryLevel) {
+        graphData.push({
+          time: device.updatedAt.toISOString(),
+          level: device.batteryLevel,
+          isCharging: device.isCharging,
+        });
+      }
+
       return {
         id: device.id,
         name: device.name,
@@ -79,6 +98,7 @@ export async function GET() {
         batteryLevel: device.batteryLevel,
         isCharging: device.isCharging,
         timeRemaining: device.timeRemaining,
+        acceptingUpdates: device.acceptingUpdates,
         updatedAt: device.updatedAt.toISOString(),
         todayStats: {
           pluggedCount,
@@ -86,6 +106,7 @@ export async function GET() {
           maxBattery,
           minBattery,
           history,
+          graphData,
         },
       };
     });
@@ -105,5 +126,35 @@ export async function GET() {
       { error: 'Internal Server Error' },
       { status: 500 }
     );
+  }
+}
+
+interface PatchPayload {
+  id?: string;
+  name?: string;
+  acceptingUpdates?: boolean | string;
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = (await request.json()) as PatchPayload;
+    const { id, name, acceptingUpdates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing device id' }, { status: 400 });
+    }
+
+    const updated = await prisma.device.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name: String(name).trim() }),
+        ...(acceptingUpdates !== undefined && { acceptingUpdates: Boolean(acceptingUpdates) }),
+      },
+    });
+
+    return NextResponse.json({ success: true, device: updated }, { status: 200 });
+  } catch (error: unknown) {
+    console.error('Failed to update device:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

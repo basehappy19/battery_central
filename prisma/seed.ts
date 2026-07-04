@@ -28,10 +28,14 @@ async function main() {
       batteryLevel: 100,
       isCharging: true,
       timeRemaining: null,
+      acceptingUpdates: true,
       prevBattery: 100,
       updatedAt: getTodayTime(0, 2),
       logs: [
-        { batteryLevel: 85, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(5) },
+        { batteryLevel: 60, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(14) },
+        { batteryLevel: 50, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(10) },
+        { batteryLevel: 45, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(8) },
+        { batteryLevel: 75, isCharging: true, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(4) },
         { batteryLevel: 100, isCharging: true, eventType: 'FULL_CHARGE', createdAt: getTodayTime(1) },
       ]
     },
@@ -42,10 +46,14 @@ async function main() {
       batteryLevel: 82,
       isCharging: false,
       timeRemaining: 310,
+      acceptingUpdates: true,
       prevBattery: 85,
       updatedAt: getTodayTime(0, 5),
       logs: [
-        { batteryLevel: 100, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(6) },
+        { batteryLevel: 100, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(12) },
+        { batteryLevel: 95, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(9) },
+        { batteryLevel: 88, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(5) },
+        { batteryLevel: 82, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(1) },
       ]
     },
     {
@@ -55,11 +63,15 @@ async function main() {
       batteryLevel: 45,
       isCharging: true,
       timeRemaining: 35,
+      acceptingUpdates: true,
       prevBattery: 40,
       updatedAt: getTodayTime(0, 1),
       logs: [
-        { batteryLevel: 80, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(7) },
-        { batteryLevel: 38, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(1) },
+        { batteryLevel: 90, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(16) },
+        { batteryLevel: 80, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(11) },
+        { batteryLevel: 55, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(6) },
+        { batteryLevel: 38, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(2) },
+        { batteryLevel: 45, isCharging: true, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(0, 30) },
       ]
     },
     {
@@ -69,9 +81,15 @@ async function main() {
       batteryLevel: 18,
       isCharging: false,
       timeRemaining: 120,
+      acceptingUpdates: true,
       prevBattery: 20,
       updatedAt: getTodayTime(0, 10),
-      logs: []
+      logs: [
+        { batteryLevel: 30, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(18) },
+        { batteryLevel: 25, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(12) },
+        { batteryLevel: 21, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(6) },
+        { batteryLevel: 18, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(1) },
+      ]
     },
     {
       id: 'dev-5-mac',
@@ -80,17 +98,20 @@ async function main() {
       batteryLevel: 94,
       isCharging: true,
       timeRemaining: 15,
+      acceptingUpdates: false, // Demo disabled receiving updates
       prevBattery: 90,
       updatedAt: getTodayTime(0, 3),
       logs: [
-        { batteryLevel: 60, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(6) },
-        { batteryLevel: 100, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(4) },
-        { batteryLevel: 85, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(1) },
+        { batteryLevel: 60, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(15) },
+        { batteryLevel: 100, isCharging: false, eventType: 'UNPLUGGED', createdAt: getTodayTime(10) },
+        { batteryLevel: 80, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(5) },
+        { batteryLevel: 85, isCharging: true, eventType: 'PLUGGED_IN', createdAt: getTodayTime(2) },
+        { batteryLevel: 94, isCharging: true, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(0, 15) },
       ]
     },
   ];
 
-  console.log('กำลังเพิ่มข้อมูลจำลองและประวัติเหตุการณ์ของวันนี้...');
+  console.log('กำลังเพิ่มข้อมูลจำลองพร้อมประวัติกราฟ 24 ชั่วโมง...');
   for (const deviceData of mockDevices) {
     const { logs, ...device } = deviceData;
     await prisma.device.create({

@@ -10,12 +10,19 @@ interface HistoryEvent {
   createdAt: string;
 }
 
+interface GraphPoint {
+  time: string;
+  level: number;
+  isCharging: boolean;
+}
+
 interface TodayStats {
   pluggedCount: number;
   unpluggedCount: number;
   maxBattery: number;
   minBattery: number;
   history: HistoryEvent[];
+  graphData: GraphPoint[];
 }
 
 interface Device {
@@ -25,6 +32,7 @@ interface Device {
   batteryLevel: number;
   isCharging: boolean;
   timeRemaining?: number | null;
+  acceptingUpdates: boolean;
   updatedAt: string;
   todayStats?: TodayStats;
 }
@@ -117,35 +125,174 @@ const getPlatformStyle = (platform: string): { bg: string; icon: React.ReactNode
   };
 };
 
+// 24-Hour Custom SVG Battery Graph Component
+const BatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
+  const points = useMemo(() => {
+    if (!data || data.length === 0) return "";
+    return data
+      .map((pt) => {
+        const d = new Date(pt.time);
+        const minutesOfDay = d.getHours() * 60 + d.getMinutes();
+        const x = (minutesOfDay / 1440) * 300;
+        const y = 80 - (pt.level / 100) * 70;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(" ");
+  }, [data]);
+
+  const areaPoints = useMemo(() => {
+    if (!points) return "";
+    const firstX = points.split(",")[0];
+    const lastX = points.split(" ")[points.split(" ").length - 1].split(",")[0];
+    return `${firstX},80 ${points} ${lastX},80`;
+  }, [points]);
+
+  if (!data || data.length === 0) {
+    return <p className="text-xs text-slate-400 text-center py-6">ไม่มีข้อมูลกราฟแบตเตอรี่ในวันนี้</p>;
+  }
+
+  return (
+    <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/60 mt-3">
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">กราฟแบตเตอรี่ตลอดทั้งวัน (00:00 - 24:00 น.)</p>
+      <div className="w-full overflow-hidden">
+        <svg viewBox="0 0 300 95" className="w-full h-32 overflow-visible">
+          <defs>
+            <linearGradient id="batteryGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          <line x1="0" y1="10" x2="300" y2="10" stroke="#e2e8f0" strokeDasharray="2,2" strokeWidth="1" />
+          <line x1="0" y1="45" x2="300" y2="45" stroke="#e2e8f0" strokeDasharray="2,2" strokeWidth="1" />
+          <line x1="0" y1="80" x2="300" y2="80" stroke="#cbd5e1" strokeWidth="1" />
+
+          {/* Labels Y */}
+          <text x="2" y="8" fill="#94a3b8" fontSize="7" fontFamily="monospace">100%</text>
+          <text x="2" y="43" fill="#94a3b8" fontSize="7" fontFamily="monospace">50%</text>
+          <text x="2" y="78" fill="#94a3b8" fontSize="7" fontFamily="monospace">0%</text>
+
+          {/* Area Fill & Polyline */}
+          {areaPoints && <polygon points={areaPoints} fill="url(#batteryGrad)" />}
+          {points && <polyline fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={points} />}
+
+          {/* Labels X (Time) */}
+          <text x="0" y="92" fill="#64748b" fontSize="7" fontFamily="monospace">00:00</text>
+          <text x="70" y="92" fill="#64748b" fontSize="7" fontFamily="monospace">06:00</text>
+          <text x="140" y="92" fill="#64748b" fontSize="7" fontFamily="monospace">12:00</text>
+          <text x="215" y="92" fill="#64748b" fontSize="7" fontFamily="monospace">18:00</text>
+          <text x="280" y="92" fill="#64748b" fontSize="7" fontFamily="monospace">24:00</text>
+        </svg>
+      </div>
+    </div>
+  );
+});
+
+BatteryGraph.displayName = "BatteryGraph";
+
 interface DeviceCardProps {
   device: Device;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
+  onRename: (id: string, newName: string) => Promise<void>;
+  onToggleAccept: (id: string, currentStatus: boolean) => Promise<void>;
 }
 
-const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand }: DeviceCardProps) => {
+const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept }: DeviceCardProps) => {
   const style = useMemo(() => getPlatformStyle(device.platform), [device.platform]);
   const timeFormatted = useMemo(() => formatTimeRemaining(device.timeRemaining, device.isCharging), [device.timeRemaining, device.isCharging]);
   const batteryColor = useMemo(() => getBatteryColor(device.batteryLevel), [device.batteryLevel]);
   const stats = device.todayStats;
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(device.name);
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveName = async () => {
+    if (!editName.trim() || editName === device.name) {
+      setIsEditing(false);
+      return;
+    }
+    setSaving(true);
+    await onRename(device.id, editName);
+    setSaving(false);
+    setIsEditing(false);
+  };
+
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200/80 hover:border-slate-300 transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between">
+    <div className={`bg-white rounded-2xl p-6 border transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between ${!device.acceptingUpdates ? "opacity-75 border-slate-300 bg-slate-50/50" : "border-slate-200/80 hover:border-slate-300"}`}>
       <div>
-        <div className="flex items-center gap-3.5 mb-6">
-          <div className={`p-3 rounded-xl border ${style.bg} shrink-0`}>
-            {style.icon}
+        {/* Top Row: Icon, Name (with Rename), Status Toggle */}
+        <div className="flex items-start justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3.5 min-w-0 flex-1">
+            <div className={`p-3 rounded-xl border ${style.bg} shrink-0`}>
+              {style.icon}
+            </div>
+            <div className="min-w-0 flex-1">
+              {isEditing ? (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    disabled={saving}
+                    className="w-full text-sm font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSaveName}
+                    disabled={saving}
+                    className="p-1 text-emerald-600 hover:text-emerald-700 font-bold text-xs bg-emerald-50 rounded border border-emerald-200 cursor-pointer"
+                    title="บันทึก"
+                  >
+                    ✓
+                  </button>
+                  <button
+                    onClick={() => { setIsEditing(false); setEditName(device.name); }}
+                    disabled={saving}
+                    className="p-1 text-rose-600 hover:text-rose-700 font-bold text-xs bg-rose-50 rounded border border-rose-200 cursor-pointer"
+                    title="ยกเลิก"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 group">
+                  <h2 className="font-bold text-base text-slate-900 truncate">
+                    {device.name}
+                  </h2>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
+                    title="เปลี่ยนชื่ออุปกรณ์"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mt-0.5">
+                {device.platform}
+              </span>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="font-bold text-base text-slate-900 truncate">
-              {device.name}
-            </h2>
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              {device.platform}
-            </span>
+
+          {/* Toggle Switch Accepting Request */}
+          <div className="flex flex-col items-end">
+            <button
+              onClick={() => onToggleAccept(device.id, device.acceptingUpdates)}
+              className={`px-2 py-1 rounded-full text-[10px] font-bold border transition-colors cursor-pointer flex items-center gap-1 ${device.acceptingUpdates ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-200 text-slate-600 border-slate-300"}`}
+              title="กดเพื่อเปิด/ปิดรับข้อมูลอัปเดตจากอุปกรณ์นี้"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${device.acceptingUpdates ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}></span>
+              <span>{device.acceptingUpdates ? "รับข้อมูล" : "ปิดรับข้อมูล"}</span>
+            </button>
           </div>
         </div>
 
+        {/* Battery Level Display */}
         <div className="flex items-baseline justify-between mb-3">
           <span className="text-4xl font-black tracking-tight font-mono text-slate-900">
             {device.batteryLevel}%
@@ -179,12 +326,13 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand }: DeviceCar
           </div>
         )}
 
+        {/* Today's Statistics & 24-Hour Graph */}
         <div className="mt-5 pt-4 border-t border-slate-100">
           <button
             onClick={() => onToggleExpand(device.id)}
             className="w-full flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3.5 py-2.5 rounded-xl border border-slate-200/80 transition-colors cursor-pointer"
           >
-            <span>สถิติและประวัติวันนี้ (1 วัน)</span>
+            <span>สถิติและกราฟตลอดทั้งวัน (1 วัน)</span>
             <svg
               className={`w-4 h-4 transform transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
               fill="none"
@@ -216,6 +364,10 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand }: DeviceCar
                 </div>
               </div>
 
+              {/* 24-Hour Graph Component */}
+              <BatteryGraph data={stats.graphData || []} />
+
+              {/* Event Timeline */}
               <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/60 max-h-44 overflow-y-auto space-y-2">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ประวัติเหตุการณ์วันนี้</p>
                 {stats.history && stats.history.length > 0 ? (
@@ -254,6 +406,47 @@ export default function BatteryDashboard() {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [expandedDevice, setExpandedDevice] = useState<string | null>(null);
 
+  // Authentication State (Never expires once saved in localStorage)
+  const [authenticated, setAuthenticated] = useState<boolean>(false);
+  const [authChecking, setAuthChecking] = useState<boolean>(true);
+  const [password, setPassword] = useState<string>("");
+  const [authError, setAuthError] = useState<string>("");
+  const [verifying, setVerifying] = useState<boolean>(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("dashboard_auth");
+    if (token === "auth_ok") {
+      setAuthenticated(true);
+    }
+    setAuthChecking(false);
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password.trim()) return;
+    setVerifying(true);
+    setAuthError("");
+
+    try {
+      const res = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = (await res.json()) as { success?: boolean; error?: string };
+      if (res.ok && data.success) {
+        localStorage.setItem("dashboard_auth", "auth_ok");
+        setAuthenticated(true);
+      } else {
+        setAuthError(data.error || "รหัสผ่านไม่ถูกต้อง");
+      }
+    } catch {
+      setAuthError("เกิดข้อผิดพลาดในการตรวจสอบรหัสผ่าน");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const fetchDevices = useCallback(async (isInitial = false): Promise<void> => {
     try {
       if (isInitial) setLoading(true);
@@ -270,16 +463,92 @@ export default function BatteryDashboard() {
   }, []);
 
   useEffect(() => {
+    if (!authenticated) return;
     fetchDevices(true);
     const interval = setInterval(() => {
       fetchDevices(false);
     }, 10000);
     return () => clearInterval(interval);
-  }, [fetchDevices]);
+  }, [authenticated, fetchDevices]);
 
   const handleToggleExpand = useCallback((id: string): void => {
     setExpandedDevice((prev) => (prev === id ? null : id));
   }, []);
+
+  const handleRenameDevice = useCallback(async (id: string, newName: string): Promise<void> => {
+    try {
+      const res = await fetch("/api/devices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: newName }),
+      });
+      if (res.ok) {
+        setDevices((prev) => prev.map((d) => (d.id === id ? { ...d, name: newName } : d)));
+      }
+    } catch (err) {
+      console.error("Failed to rename device:", err);
+    }
+  }, []);
+
+  const handleToggleAccept = useCallback(async (id: string, currentStatus: boolean): Promise<void> => {
+    try {
+      const res = await fetch("/api/devices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, acceptingUpdates: !currentStatus }),
+      });
+      if (res.ok) {
+        setDevices((prev) => prev.map((d) => (d.id === id ? { ...d, acceptingUpdates: !currentStatus } : d)));
+      }
+    } catch (err) {
+      console.error("Failed to toggle accepting updates:", err);
+    }
+  }, []);
+
+  if (authChecking) {
+    return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-400">กำลังโหลด...</div>;
+  }
+
+  // Lock Screen Modal / Page if not authenticated
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex items-center justify-center p-6 font-sans">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-slate-200/80 shadow-md">
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-200">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-slate-900">ระบบติดตามแบตเตอรี่</h1>
+            <p className="text-xs text-slate-500 mt-1">กรุณาระบุรหัสผ่านเพื่อเข้าสู่ระบบแดชบอร์ด (เข้าสู่ระบบครั้งเดียวอยู่ได้ถาวร)</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                placeholder="ระบุรหัสผ่าน..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white transition-colors"
+                autoFocus
+              />
+              {authError && <p className="text-xs font-semibold text-rose-500 mt-2 text-center">{authError}</p>}
+            </div>
+            <button
+              type="submit"
+              disabled={verifying}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              {verifying ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
+            </button>
+          </form>
+          <p className="text-[10px] text-slate-400 text-center mt-6">รหัสผ่านเริ่มต้น: battery123 (หรือตามที่ตั้งค่าในระบบ)</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-6 md:p-12 font-sans selection:bg-slate-200">
@@ -325,6 +594,8 @@ export default function BatteryDashboard() {
                 device={device}
                 isExpanded={expandedDevice === device.id}
                 onToggleExpand={handleToggleExpand}
+                onRename={handleRenameDevice}
+                onToggleAccept={handleToggleAccept}
               />
             ))}
           </div>
