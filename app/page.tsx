@@ -284,7 +284,7 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRen
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 group">
-                <h2 className="font-bold text-base sm:text-lg text-slate-900 truncate">
+                <h2 className="font-bold text-base sm:text-lg text-slate-900 break-words">
                   {device.name}
                 </h2>
                 <button
@@ -994,7 +994,7 @@ export default function BatteryDashboard() {
                         {i + 1}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-bold text-sm sm:text-base text-slate-900 truncate">{d.name}</h4>
+                        <h4 className="font-bold text-sm sm:text-base text-slate-900 break-words">{d.name}</h4>
                         <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">{d.platform} • แบต {d.batteryLevel}%</span>
                       </div>
                     </div>
