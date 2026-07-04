@@ -273,7 +273,7 @@ export async function PATCH(request: Request) {
     const cleanId = sanitizeString(id, 50);
     const cleanName = name !== undefined ? sanitizeString(name, 50) : undefined;
 
-    const existingDevice = await prisma.device.findUnique({
+    const existingDevice = await prisma.device.findFirst({
       where: { id: cleanId },
     });
 
@@ -281,7 +281,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ (Device Not Found)' }, { status: 404 });
     }
 
-    const updated = await prisma.device.update({
+    await prisma.device.updateMany({
       where: { id: cleanId },
       data: {
         ...(cleanName !== undefined && { name: cleanName }),
@@ -289,7 +289,8 @@ export async function PATCH(request: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, device: updated }, { status: 200 });
+    const updatedDevice = await prisma.device.findFirst({ where: { id: cleanId } });
+    return NextResponse.json({ success: true, device: updatedDevice }, { status: 200 });
   } catch (error: unknown) {
     console.error('Failed to update device:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

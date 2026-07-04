@@ -538,7 +538,7 @@ export default function BatteryDashboard() {
   const fetchDevices = useCallback(async (isInitial = false): Promise<void> => {
     try {
       if (isInitial) setLoading(true);
-      const res = await fetch("/api/devices", {
+      const res = await fetch(`/api/devices?_t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
       });
@@ -624,6 +624,7 @@ export default function BatteryDashboard() {
         setDevices(reorderList);
         showToast("บันทึกตำแหน่งการจัดเรียงอุปกรณ์เรียบร้อยแล้ว", "success");
         handleCloseReorderModal();
+        fetchDevices(false);
       } else {
         showToast("ไม่สามารถบันทึกตำแหน่งได้ กรุณาลองใหม่", "error");
       }
@@ -672,6 +673,7 @@ export default function BatteryDashboard() {
         setDevices((prev) => prev.map((d) => (d.id === id ? { ...d, name: newName } : d)));
         showToast(`เปลี่ยนชื่ออุปกรณ์เป็น "${newName}" เรียบร้อยแล้ว`, "success");
         handleCloseRenameModal();
+        fetchDevices(false);
       } else {
         const data = (await res.json()) as { error?: string };
         showToast(data.error || "ไม่สามารถเปลี่ยนชื่ออุปกรณ์ได้", "error");
@@ -698,6 +700,7 @@ export default function BatteryDashboard() {
       });
       if (res.ok) {
         setDevices((prev) => prev.map((d) => (d.id === id ? { ...d, acceptingUpdates: !currentStatus } : d)));
+        fetchDevices(false);
       } else {
         const data = (await res.json()) as { error?: string };
         showToast(data.error || "ไม่สามารถอัปเดตสถานะได้", "error");

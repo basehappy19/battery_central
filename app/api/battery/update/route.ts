@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const now = new Date();
 
     // STRICT CHECK: Device MUST exist in the system (pre-registered in Dashboard)
-    const existingDevice: Device | null = await prisma.device.findUnique({
+    const existingDevice: Device | null = await prisma.device.findFirst({
       where: { id: cleanDeviceId },
     });
 
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
       timeRemaining = existingDevice.timeRemaining;
     }
 
-    const device = await prisma.device.update({
+    await prisma.device.updateMany({
       where: { id: cleanDeviceId },
       data: {
         batteryLevel: currentBattery,
@@ -146,7 +146,8 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, device }, { status: 200 });
+    const updatedDevice = await prisma.device.findFirst({ where: { id: cleanDeviceId } });
+    return NextResponse.json({ success: true, device: updatedDevice }, { status: 200 });
   } catch (error: unknown) {
     console.error('Failed to update battery status:', error);
     return NextResponse.json(
