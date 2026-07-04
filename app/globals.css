@@ -20,7 +20,7 @@ body {
 
 @keyframes charging-wave {
   0% {
-    background-position: 1rem 0;
+    background-position: 28px 0;
   }
   100% {
     background-position: 0 0;
@@ -38,6 +38,7 @@ body {
     transparent 75%,
     transparent
   );
-  background-size: 1.25rem 1.25rem;
-  animation: charging-wave 1s linear infinite;
+  background-size: 28px 28px;
+  animation: charging-wave 0.8s linear infinite;
+  will-change: background-position;
 }

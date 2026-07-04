@@ -153,7 +153,7 @@ const getPlatformStyle = (platform: string, isOffline?: boolean): { bg: string; 
       bg: "bg-emerald-50 border-emerald-100 text-emerald-600",
       icon: (
         <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396" />
+          <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9997c.5511 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396" />
         </svg>
       ),
     };
@@ -257,9 +257,10 @@ interface DeviceCardProps {
   onToggleExpand: (id: string) => void;
   onRename: (id: string, newName: string) => Promise<void>;
   onToggleAccept: (id: string, currentStatus: boolean) => Promise<void>;
+  onDelete: (id: string, name: string) => Promise<void>;
 }
 
-const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept }: DeviceCardProps) => {
+const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept, onDelete }: DeviceCardProps) => {
   const style = useMemo(() => getPlatformStyle(device.platform, device.isOffline), [device.platform, device.isOffline]);
   const timeFormatted = useMemo(() => formatTimeRemaining(device.timeRemaining, device.isCharging, device.isOffline), [device.timeRemaining, device.isCharging, device.isOffline]);
   const batteryColor = useMemo(() => getBatteryColor(device.batteryLevel, device.isOffline), [device.batteryLevel, device.isOffline]);
@@ -346,7 +347,7 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
             </div>
           </div>
 
-          <div className="flex flex-col items-end shrink-0">
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
             <button
               onClick={() => onToggleAccept(device.id, device.acceptingUpdates)}
               className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1.5 ${device.acceptingUpdates ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-200 text-slate-600 border-slate-300"}`}
@@ -354,6 +355,13 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
             >
               <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${device.acceptingUpdates ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}></span>
               <span>{device.acceptingUpdates ? "รับข้อมูล" : "ปิดรับข้อมูล"}</span>
+            </button>
+            <button
+              onClick={() => onDelete(device.id, device.name)}
+              className="text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+              title="ลบอุปกรณ์นี้ออกจากระบบ"
+            >
+              🗑️ ลบเครื่อง
             </button>
           </div>
         </div>
@@ -465,7 +473,7 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
       </div>
 
       <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm text-slate-400 font-mono">
-        <span>รหัส: {device.id.slice(0, 8)}</span>
+        <span>รหัส: {device.id}</span>
         <span>
           ใช้งานล่าสุด: {new Date(device.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
@@ -478,6 +486,7 @@ DeviceCard.displayName = "DeviceCard";
 
 export default function BatteryDashboard() {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [systemApiKey, setSystemApiKey] = useState<string>("secret_batt_2026");
   const [loading, setLoading] = useState<boolean>(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [expandedDevice, setExpandedDevice] = useState<string | null>(null);
@@ -487,6 +496,14 @@ export default function BatteryDashboard() {
   const [password, setPassword] = useState<string>("");
   const [authError, setAuthError] = useState<string>("");
   const [verifying, setVerifying] = useState<boolean>(false);
+
+  // Add Device Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newDeviceName, setNewDeviceName] = useState("");
+  const [newDevicePlatform, setNewDevicePlatform] = useState("Android");
+  const [creatingDevice, setCreatingDevice] = useState(false);
+  const [createdResult, setCreatedResult] = useState<{ id: string; name: string; apiKey: string } | null>(null);
+  const [copySuccess, setCopySuccess] = useState<string>("");
 
   useEffect(() => {
     const token = localStorage.getItem("dashboard_auth");
@@ -527,8 +544,9 @@ export default function BatteryDashboard() {
       if (isInitial) setLoading(true);
       const res = await fetch("/api/devices");
       if (!res.ok) throw new Error("Failed to fetch");
-      const data = (await res.json()) as { devices: Device[] };
+      const data = (await res.json()) as { devices: Device[]; systemApiKey?: string };
       setDevices(data.devices || []);
+      if (data.systemApiKey) setSystemApiKey(data.systemApiKey);
       setLastRefreshed(new Date());
     } catch (err: unknown) {
       console.error("Error polling devices:", err);
@@ -588,6 +606,61 @@ export default function BatteryDashboard() {
     }
   }, []);
 
+  const handleDeleteDevice = useCallback(async (id: string, name: string): Promise<void> => {
+    if (!window.confirm(`ต้องการลบอุปกรณ์ "${name}" (ID: ${id}) และประวัติทั้งหมดออกจากระบบหรือไม่?`)) return;
+    try {
+      const token = localStorage.getItem("dashboard_auth") || "";
+      const res = await fetch(`/api/devices?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: { "x-dashboard-token": token },
+      });
+      if (res.ok) {
+        setDevices((prev) => prev.filter((d) => d.id !== id));
+      }
+    } catch (err) {
+      console.error("Failed to delete device:", err);
+    }
+  }, []);
+
+  const handleCreateDevice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDeviceName.trim()) return;
+    setCreatingDevice(true);
+    setCreatedResult(null);
+
+    try {
+      const token = localStorage.getItem("dashboard_auth") || "";
+      const res = await fetch("/api/devices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-dashboard-token": token,
+        },
+        body: JSON.stringify({ name: newDeviceName, platform: newDevicePlatform }),
+      });
+      const data = (await res.json()) as { success?: boolean; device?: Device; apiKey?: string };
+      if (res.ok && data.success && data.device) {
+        setDevices((prev) => [data.device!, ...prev]);
+        setCreatedResult({
+          id: data.device.id,
+          name: data.device.name,
+          apiKey: data.apiKey || systemApiKey,
+        });
+        setNewDeviceName("");
+      }
+    } catch (err) {
+      console.error("Failed to create device:", err);
+    } finally {
+      setCreatingDevice(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopySuccess(`คัดลอก ${label} แล้ว!`);
+    setTimeout(() => setCopySuccess(""), 3000);
+  };
+
   if (authChecking) {
     return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-400 font-medium">กำลังโหลด...</div>;
   }
@@ -634,25 +707,176 @@ export default function BatteryDashboard() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-6 md:p-10 lg:p-12 font-sans selection:bg-slate-200">
       <div className="max-w-7xl mx-auto space-y-8 sm:space-y-10">
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-200">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-200">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              ระบบติดตามแบตเตอรี่
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                ระบบติดตามแบตเตอรี่
+              </h1>
+              <button
+                onClick={() => { setShowAddModal(true); setCreatedResult(null); }}
+                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-full shadow-sm transition-colors cursor-pointer"
+              >
+                <span>➕ เพิ่มอุปกรณ์ใหม่</span>
+              </button>
+            </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-              รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์
+              รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์ (บังคับตรวจ ID & Secret Key)
             </p>
           </div>
-          <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full border border-slate-200/80 shadow-sm self-start sm:self-auto">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-xs font-mono text-slate-500">
-              อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
-            </span>
+          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
+            <div
+              onClick={() => copyToClipboard(systemApiKey, "API Secret Key")}
+              className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full border border-slate-800 shadow-sm cursor-pointer hover:bg-slate-800 transition-colors"
+              title="คลิกเพื่อคัดลอก API Secret Key สำหรับใส่ใน MacroDroid"
+            >
+              <span className="text-xs font-mono">🔑 API Key: <code className="text-emerald-400">{systemApiKey}</code></span>
+              <span className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">📋 คัดลอก</span>
+            </div>
+            <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full border border-slate-200/80 shadow-sm">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-mono text-slate-500">
+                อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </span>
+            </div>
           </div>
         </header>
+
+        {copySuccess && (
+          <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 z-50 animate-bounce">
+            ✓ {copySuccess}
+          </div>
+        )}
+
+        {showAddModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold text-lg p-1"
+              >
+                ✕
+              </button>
+
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">➕ เพิ่มอุปกรณ์ใหม่ในระบบ</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mb-6">
+                ระบบไม่อนุญาตให้อุปกรณ์สร้าง ID เองอัตโนมัติอีกต่อไป กรุณาสร้างอุปกรณ์ที่นี่และนำ ID ที่ได้ไปตั้งค่าใน MacroDroid
+              </p>
+
+              {createdResult ? (
+                <div className="space-y-4 bg-emerald-50/80 p-5 rounded-2xl border border-emerald-200 animate-fadeIn">
+                  <div className="text-center pb-2 border-b border-emerald-200/60">
+                    <span className="text-2xl block mb-1">🎉</span>
+                    <h3 className="font-bold text-emerald-800 text-base">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; สำเร็จ!</h3>
+                    <p className="text-xs text-emerald-600 mt-0.5">นำค่าด้านล่างไปใส่ใน MacroDroid หรือตัวส่งข้อมูลของคุณ</p>
+                  </div>
+
+                  <div className="space-y-2.5 text-xs font-mono">
+                    <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold">Device ID (รหัสเครื่อง)</span>
+                        <span className="font-bold text-slate-900 text-sm">{createdResult.id}</span>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(createdResult.id, "Device ID")}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold font-sans text-xs cursor-pointer"
+                      >
+                        📋 คัดลอก ID
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold">API Secret Key</span>
+                        <span className="font-bold text-slate-900 text-sm">{createdResult.apiKey}</span>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(createdResult.apiKey, "API Secret Key")}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold font-sans text-xs cursor-pointer"
+                      >
+                        📋 คัดลอก Key
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 text-slate-200 p-3.5 rounded-xl text-[11px] font-mono space-y-1">
+                    <span className="text-slate-400 block text-[10px] font-sans font-bold uppercase">ตัวอย่าง JSON สำหรับ MacroDroid / POST Body</span>
+                    <pre className="overflow-x-auto text-emerald-400">
+{`{
+  "deviceId": "${createdResult.id}",
+  "apiKey": "${createdResult.apiKey}",
+  "batteryLevel": "[battery_level]",
+  "isCharging": [is_charging]
+}`}
+                    </pre>
+                  </div>
+
+                  <button
+                    onClick={() => { setShowAddModal(false); setCreatedResult(null); }}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer mt-2"
+                  >
+                    ปิดหน้าต่างและกลับสู่แดชบอร์ด
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleCreateDevice} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      ชื่ออุปกรณ์ (เช่น มือถือ Galaxy S24 Ultra, แท็บเล็ตทำงาน)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ระบุชื่ออุปกรณ์..."
+                      value={newDeviceName}
+                      onChange={(e) => setNewDeviceName(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      แพลตฟอร์ม / ระบบปฏิบัติการ
+                    </label>
+                    <select
+                      value={newDevicePlatform}
+                      onChange={(e) => setNewDevicePlatform(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white"
+                    >
+                      <option value="Android">Android (MacroDroid / Tasker)</option>
+                      <option value="Windows">Windows (PC / Laptop)</option>
+                      <option value="iOS">iOS (iPhone / iPad)</option>
+                      <option value="macOS">macOS (MacBook)</option>
+                      <option value="ESP32">ESP32 / IoT Sensor</option>
+                      <option value="Other">อื่นๆ (Other)</option>
+                    </select>
+                  </div>
+
+                  <div className="pt-3 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creatingDevice}
+                      className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                    >
+                      {creatingDevice ? "กำลังสร้าง ID..." : "✓ สร้างและรับ ID"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-pulse">
@@ -664,7 +888,7 @@ export default function BatteryDashboard() {
           <div className="text-center py-20 bg-white rounded-2xl sm:rounded-3xl border border-dashed border-slate-300 shadow-sm p-6">
             <p className="text-slate-600 font-semibold text-base sm:text-lg">ยังไม่มีอุปกรณ์เชื่อมต่อในระบบ</p>
             <p className="text-xs sm:text-sm text-slate-400 mt-1.5">
-              ส่งคำขอ POST ไปที่ <code className="text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded font-mono">/api/battery/update</code> เพื่อบันทึกข้อมูล
+              กดปุ่ม <span className="text-emerald-600 font-bold">&quot;➕ เพิ่มอุปกรณ์ใหม่&quot;</span> ด้านบนเพื่อสร้างรหัส ID สำหรับเชื่อมต่อ MacroDroid
             </p>
           </div>
         ) : (
@@ -677,6 +901,7 @@ export default function BatteryDashboard() {
                 onToggleExpand={handleToggleExpand}
                 onRename={handleRenameDevice}
                 onToggleAccept={handleToggleAccept}
+                onDelete={handleDeleteDevice}
               />
             ))}
           </div>

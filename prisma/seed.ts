@@ -13,12 +13,12 @@ async function main() {
   await prisma.device.deleteMany();
   await prisma.setting.deleteMany();
 
-  console.log('กำลังตั้งค่ารหัสผ่านในฐานข้อมูล...');
-  await prisma.setting.create({
-    data: {
-      key: 'dashboard_password',
-      value: 'battery123',
-    },
+  console.log('กำลังตั้งค่ารหัสผ่านและ API Secret Key ในฐานข้อมูล...');
+  await prisma.setting.createMany({
+    data: [
+      { key: 'dashboard_password', value: 'battery123' },
+      { key: 'api_secret_key', value: 'secret_batt_2026' },
+    ],
   });
 
   const now = new Date();
@@ -31,7 +31,7 @@ async function main() {
 
   const mockDevices = [
     {
-      id: 'dev-1-win',
+      id: 'bat-win001',
       name: 'พีซีทำงานหลัก (Windows)',
       platform: 'Windows',
       batteryLevel: 100,
@@ -49,7 +49,7 @@ async function main() {
       ]
     },
     {
-      id: 'dev-2-ipad',
+      id: 'bat-ipad02',
       name: 'ไอแพดโปร 11 นิ้ว (iPadOS)',
       platform: 'iPadOS',
       batteryLevel: 82,
@@ -67,7 +67,7 @@ async function main() {
       ]
     },
     {
-      id: 'dev-3-android',
+      id: 'bat-and003',
       name: 'มือถือ Galaxy S24 Ultra',
       platform: 'Android',
       batteryLevel: 45,
@@ -86,7 +86,7 @@ async function main() {
       ]
     },
     {
-      id: 'dev-4-esp32',
+      id: 'bat-esp004',
       name: 'เซนเซอร์ตรวจวัดสภาพอากาศ (ESP32)',
       platform: 'ESP32',
       batteryLevel: 18,
@@ -94,7 +94,7 @@ async function main() {
       timeRemaining: null,
       acceptingUpdates: true,
       prevBattery: 20,
-      updatedAt: getTodayTime(3, 0), // Last updated 3 hours ago -> Currently OFFLINE!
+      updatedAt: getTodayTime(3, 0),
       logs: [
         { batteryLevel: 30, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(18) },
         { batteryLevel: 25, isCharging: false, eventType: 'LEVEL_UPDATE', createdAt: getTodayTime(12) },
@@ -103,7 +103,7 @@ async function main() {
       ]
     },
     {
-      id: 'dev-5-mac',
+      id: 'bat-mac005',
       name: 'แมคบุ๊กโปร M3 (macOS)',
       platform: 'macOS',
       batteryLevel: 94,
