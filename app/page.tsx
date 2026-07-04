@@ -264,11 +264,11 @@ interface DeviceCardProps {
   onToggleExpand: (id: string) => void;
   onRename: (id: string, newName: string) => Promise<void>;
   onToggleAccept: (id: string, currentStatus: boolean) => Promise<void>;
-  onDelete: (id: string, name: string) => Promise<void>;
+  onPromptDelete: (id: string, name: string) => void;
   onToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept, onDelete, onToast }: DeviceCardProps) => {
+const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept, onPromptDelete, onToast }: DeviceCardProps) => {
   const style = useMemo(() => getPlatformStyle(device.platform, device.isOffline), [device.platform, device.isOffline]);
   const timeFormatted = useMemo(() => formatTimeRemaining(device.timeRemaining, device.isCharging, device.isOffline), [device.timeRemaining, device.isCharging, device.isOffline]);
   const batteryColor = useMemo(() => getBatteryColor(device.batteryLevel, device.isOffline), [device.batteryLevel, device.isOffline]);
@@ -373,7 +373,7 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
               <span>{device.acceptingUpdates ? "รับข้อมูล" : "ปิดรับข้อมูล"}</span>
             </button>
             <button
-              onClick={() => onDelete(device.id, device.name)}
+              onClick={() => onPromptDelete(device.id, device.name)}
               className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 hover:text-rose-700 px-2.5 py-1 rounded-md bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
               title="ลบอุปกรณ์นี้ออกจากระบบ"
             >
@@ -525,6 +525,11 @@ export default function BatteryDashboard() {
   const [creatingDevice, setCreatingDevice] = useState(false);
   const [createdResult, setCreatedResult] = useState<{ id: string; name: string; apiKey: string } | null>(null);
 
+  // Delete Device Confirmation Modal State
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isClosingDeleteModal, setIsClosingDeleteModal] = useState(false);
+  const [deletingDevice, setDeletingDevice] = useState(false);
+
   // Toast System
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -651,8 +656,23 @@ export default function BatteryDashboard() {
     }
   }, [showToast, fetchDevices]);
 
-  const handleDeleteDevice = useCallback(async (id: string, name: string): Promise<void> => {
-    if (!window.confirm(`ต้องการลบอุปกรณ์ "${name}" (ID: ${id}) และประวัติทั้งหมดออกจากระบบหรือไม่?`)) return;
+  const handlePromptDelete = useCallback((id: string, name: string) => {
+    setDeleteTarget({ id, name });
+    setIsClosingDeleteModal(false);
+  }, []);
+
+  const handleCloseDeleteModal = () => {
+    setIsClosingDeleteModal(true);
+    setTimeout(() => {
+      setDeleteTarget(null);
+      setIsClosingDeleteModal(false);
+    }, 150);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { id, name } = deleteTarget;
+    setDeletingDevice(true);
     try {
       const token = localStorage.getItem("dashboard_auth") || "";
       const res = await fetch(`/api/devices?id=${encodeURIComponent(id)}`, {
@@ -662,6 +682,7 @@ export default function BatteryDashboard() {
       if (res.ok) {
         setDevices((prev) => prev.filter((d) => d.id !== id));
         showToast(`ลบอุปกรณ์ "${name}" ออกจากระบบแล้ว`, "info");
+        handleCloseDeleteModal();
       } else {
         const data = (await res.json()) as { error?: string };
         showToast(data.error || "ไม่สามารถลบอุปกรณ์ได้ กรุณาลองใหม่", "error");
@@ -670,8 +691,10 @@ export default function BatteryDashboard() {
     } catch (err) {
       console.error("Failed to delete device:", err);
       showToast("เกิดข้อผิดพลาดในการลบอุปกรณ์", "error");
+    } finally {
+      setDeletingDevice(false);
     }
-  }, [showToast, fetchDevices]);
+  };
 
   const handleOpenModal = () => {
     setCreatedResult(null);
@@ -831,17 +854,6 @@ export default function BatteryDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
-            <div
-              onClick={() => copyToClipboard(systemApiKey, "รหัสลับ API")}
-              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-full border border-slate-800 shadow-sm cursor-pointer hover:bg-slate-800 transition-colors"
-              title="คลิกเพื่อคัดลอกรหัสลับ API สำหรับใส่ใน MacroDroid"
-            >
-              <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-              <span className="text-xs font-mono">รหัสลับ API: <code className="text-emerald-400">{systemApiKey}</code></span>
-              <span className="text-[10px] bg-slate-700 px-2 py-0.5 rounded text-slate-200">คัดลอก</span>
-            </div>
             <div className="flex items-center gap-2.5 bg-white px-4 py-2.5 rounded-full border border-slate-200/80 shadow-sm">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -853,6 +865,68 @@ export default function BatteryDashboard() {
             </div>
           </div>
         </header>
+
+        {deleteTarget && (
+          <div
+            onClick={handleCloseDeleteModal}
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+              isClosingDeleteModal ? "animate-fade-out" : "animate-fade-in"
+            }`}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
+                isClosingDeleteModal ? "animate-modal-out" : "animate-modal-in"
+              }`}
+            >
+              <div className="flex items-center gap-3.5 mb-4">
+                <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center border border-rose-200 shrink-0">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">ยืนยันการลบอุปกรณ์</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-6 text-xs sm:text-sm text-slate-600 space-y-1.5">
+                <p>ต้องการลบอุปกรณ์ <span className="font-bold text-slate-900">&quot;{deleteTarget.name}&quot;</span> ออกจากระบบหรือไม่?</p>
+                <p className="text-xs text-rose-600 font-medium">ประวัติสถานะแบตเตอรี่และกราฟทั้งหมดของอุปกรณ์นี้จะถูกลบถาวร</p>
+                <p className="text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-200">ID: {deleteTarget.id}</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleCloseDeleteModal}
+                  disabled={deletingDevice}
+                  className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deletingDevice}
+                  className="w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {deletingDevice ? (
+                    <span>กำลังลบ...</span>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span>ยืนยันลบอุปกรณ์</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showAddModal && (
           <div
@@ -1039,7 +1113,7 @@ export default function BatteryDashboard() {
                 onToggleExpand={handleToggleExpand}
                 onRename={handleRenameDevice}
                 onToggleAccept={handleToggleAccept}
-                onDelete={handleDeleteDevice}
+                onPromptDelete={handlePromptDelete}
                 onToast={showToast}
               />
             ))}
