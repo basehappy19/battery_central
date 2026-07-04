@@ -2,6 +2,22 @@
 
 import { useEffect, useState, useCallback } from "react";
 
+interface HistoryEvent {
+  id: string;
+  batteryLevel: number;
+  isCharging: boolean;
+  eventType: string;
+  createdAt: string;
+}
+
+interface TodayStats {
+  pluggedCount: number;
+  unpluggedCount: number;
+  maxBattery: number;
+  minBattery: number;
+  history: HistoryEvent[];
+}
+
 interface Device {
   id: string;
   name: string;
@@ -10,15 +26,18 @@ interface Device {
   isCharging: boolean;
   timeRemaining?: number | null;
   updatedAt: string;
+  todayStats?: TodayStats;
 }
 
 export default function BatteryDashboard() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [expandedDevice, setExpandedDevice] = useState<string | null>(null);
 
-  const fetchDevices = useCallback(async () => {
+  const fetchDevices = useCallback(async (isInitial = false) => {
     try {
+      if (isInitial) setLoading(true);
       const res = await fetch("/api/devices");
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
@@ -27,21 +46,20 @@ export default function BatteryDashboard() {
     } catch (err) {
       console.error("Error polling devices:", err);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchDevices();
-    // Poll every 60 seconds
-    const interval = setInterval(fetchDevices, 60000);
+    fetchDevices(true);
+    const interval = setInterval(() => fetchDevices(false), 10000);
     return () => clearInterval(interval);
   }, [fetchDevices]);
 
   const getBatteryColor = (level: number) => {
-    if (level > 50) return "bg-emerald-500 shadow-emerald-500/50";
-    if (level >= 20) return "bg-amber-500 shadow-amber-500/50";
-    return "bg-rose-500 shadow-rose-500/50";
+    if (level > 50) return "bg-emerald-500 shadow-sm shadow-emerald-500/20";
+    if (level >= 20) return "bg-amber-500 shadow-sm shadow-amber-500/20";
+    return "bg-rose-500 shadow-sm shadow-rose-500/20";
   };
 
   const formatTimeRemaining = (minutes: number | null | undefined, isCharging: boolean) => {
@@ -51,80 +69,102 @@ export default function BatteryDashboard() {
     
     let timeStr = "";
     if (hours > 0 && mins > 0) {
-      timeStr = `${hours} hr${hours > 1 ? "s" : ""} ${mins} min${mins > 1 ? "s" : ""}`;
+      timeStr = `${hours} ชม. ${mins} นาที`;
     } else if (hours > 0) {
-      timeStr = `${hours} hr${hours > 1 ? "s" : ""}`;
+      timeStr = `${hours} ชม.`;
     } else {
-      timeStr = `${mins} min${mins > 1 ? "s" : ""}`;
+      timeStr = `${mins} นาที`;
     }
 
-    return isCharging ? `Estimated time to full: ${timeStr}` : `Estimated time remaining: ${timeStr}`;
+    return isCharging ? `ชาร์จเต็มในอีกประมาณ ~${timeStr}` : `เหลือเวลาใช้งานอีก ~${timeStr}`;
   };
 
-  const getPlatformIcon = (platform: string) => {
+  const formatEventType = (type: string, level: number) => {
+    switch (type) {
+      case 'PLUGGED_IN':
+        return `เสียบสายชาร์จ (${level}%)`;
+      case 'UNPLUGGED':
+        return `ถอดสายชาร์จ (${level}%)`;
+      case 'FULL_CHARGE':
+        return `ชาร์จเต็ม 100%`;
+      default:
+        return `บันทึกสถานะ (${level}%)`;
+    }
+  };
+
+  const getPlatformStyle = (platform: string) => {
     const p = platform.toLowerCase();
     if (p.includes("win")) {
-      return (
-        <svg className="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.8" />
-        </svg>
-      );
+      return {
+        bg: "bg-sky-50 border-sky-100 text-sky-600",
+        icon: (
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.8" />
+          </svg>
+        ),
+      };
     }
     if (p.includes("ios") || p.includes("ipad") || p.includes("apple") || p.includes("mac")) {
-      return (
-        <svg className="w-5 h-5 text-slate-200" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.35c.64-.78 1.08-1.86.96-2.95-.93.04-2.06.62-2.72 1.39-.58.67-.92 1.77-.78 2.84 1.05.08 2.11-.53 2.54-1.28" />
-        </svg>
-      );
+      return {
+        bg: "bg-slate-100 border-slate-200 text-slate-700",
+        icon: (
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.35c.64-.78 1.08-1.86.96-2.95-.93.04-2.06.62-2.72 1.39-.58.67-.92 1.77-.78 2.84 1.05.08 2.11-.53 2.54-1.28" />
+          </svg>
+        ),
+      };
     }
     if (p.includes("android")) {
-      return (
-        <svg className="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396" />
-        </svg>
-      );
+      return {
+        bg: "bg-emerald-50 border-emerald-100 text-emerald-600",
+        icon: (
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396" />
+          </svg>
+        ),
+      };
     }
     if (p.includes("esp") || p.includes("iot")) {
-      return (
-        <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-        </svg>
-      );
+      return {
+        bg: "bg-amber-50 border-amber-100 text-amber-600",
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+          </svg>
+        ),
+      };
     }
-    return (
-      <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    );
+    return {
+      bg: "bg-indigo-50 border-indigo-100 text-indigo-600",
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+    };
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-6 md:p-12 font-sans selection:bg-slate-200">
+      <div className="max-w-6xl mx-auto space-y-10">
         {/* Header */}
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-800/80">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-200">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 bg-clip-text text-transparent">
-              Battery Central
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              ระบบติดตามแบตเตอรี่
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Real-time telemetry across desktop, mobile, and IoT hardware
+            <p className="text-sm text-slate-500 mt-1 font-medium">
+              รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์
             </p>
           </div>
-          <div className="flex items-center gap-4 bg-slate-900/80 px-4 py-2 rounded-full border border-slate-800 shadow-inner">
-            <span className="flex h-2.5 w-2.5 relative">
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-200/80 shadow-sm">
+            <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-xs font-mono text-slate-400">
-              Updated: {lastRefreshed.toLocaleTimeString()}
+            <span className="text-xs font-mono text-slate-500">
+              อัปเดตเมื่อ: {lastRefreshed.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
             </span>
-            <button
-              onClick={fetchDevices}
-              className="text-xs font-medium text-sky-400 hover:text-sky-300 transition-colors pl-2 border-l border-slate-700 cursor-pointer"
-            >
-              Refresh
-            </button>
           </div>
         </header>
 
@@ -132,32 +172,37 @@ export default function BatteryDashboard() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-48 bg-slate-900/50 rounded-2xl border border-slate-800/60" />
+              <div key={i} className="h-64 bg-white rounded-2xl border border-slate-200 shadow-sm" />
             ))}
           </div>
         ) : devices.length === 0 ? (
-          <div className="text-center py-20 bg-slate-900/30 rounded-2xl border border-dashed border-slate-800">
-            <p className="text-slate-400 font-medium">No devices connected yet.</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Send a POST request to <code className="text-sky-400 bg-slate-900 px-1.5 py-0.5 rounded">/api/battery/update</code>
+          <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300 shadow-sm">
+            <p className="text-slate-600 font-semibold text-base">ยังไม่มีอุปกรณ์เชื่อมต่อในระบบ</p>
+            <p className="text-xs text-slate-400 mt-1">
+              ส่งคำขอ POST ไปที่ <code className="text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded font-mono">/api/battery/update</code> เพื่อบันทึกข้อมูล
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {devices.map((device) => (
-              <div
-                key={device.id}
-                className="group relative bg-gradient-to-b from-slate-900/90 to-slate-900/50 backdrop-blur-md rounded-2xl p-6 border border-slate-800/80 hover:border-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col justify-between"
-              >
-                {/* Top Row: Icon, Name, Platform Badge */}
-                <div>
-                  <div className="flex items-center justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/50 shadow-inner group-hover:scale-105 transition-transform">
-                        {getPlatformIcon(device.platform)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+            {devices.map((device) => {
+              const style = getPlatformStyle(device.platform);
+              const timeFormatted = formatTimeRemaining(device.timeRemaining, device.isCharging);
+              const isExpanded = expandedDevice === device.id;
+              const stats = device.todayStats;
+
+              return (
+                <div
+                  key={device.id}
+                  className="bg-white rounded-2xl p-6 border border-slate-200/80 hover:border-slate-300 transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between"
+                >
+                  {/* Top Row: Icon & Name */}
+                  <div>
+                    <div className="flex items-center gap-3.5 mb-6">
+                      <div className={`p-3 rounded-xl border ${style.bg} shrink-0`}>
+                        {style.icon}
                       </div>
-                      <div>
-                        <h2 className="font-bold text-lg text-slate-100 tracking-wide line-clamp-1">
+                      <div className="min-w-0 flex-1">
+                        <h2 className="font-bold text-base text-slate-900 truncate">
                           {device.name}
                         </h2>
                         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -165,60 +210,114 @@ export default function BatteryDashboard() {
                         </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Battery Level Display */}
-                  <div className="flex items-baseline justify-between mt-6 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-4xl font-extrabold tracking-tight font-mono text-slate-100">
+                    {/* Battery Level Display */}
+                    <div className="flex items-baseline justify-between mb-3">
+                      <span className="text-4xl font-black tracking-tight font-mono text-slate-900">
                         {device.batteryLevel}%
                       </span>
                       {device.isCharging && (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-pulse">
-                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                          </svg>
-                          Charging
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          กำลังชาร์จ
                         </span>
+                      )}
+                    </div>
+
+                    {/* Progress Bar with Charging Wave Animation */}
+                    <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ease-out ${getBatteryColor(device.batteryLevel)} ${device.isCharging ? "animate-charging" : ""}`}
+                        style={{ width: `${device.batteryLevel}%` }}
+                      />
+                    </div>
+
+                    {/* Time Estimation */}
+                    {timeFormatted ? (
+                      <div className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-50/80 px-3.5 py-2 rounded-xl border border-slate-200/60">
+                        <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{timeFormatted}</span>
+                      </div>
+                    ) : (
+                      <div className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-400 bg-slate-50/50 px-3.5 py-2 rounded-xl border border-slate-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                        <span>ไม่มีข้อมูลเวลาประเมิน</span>
+                      </div>
+                    )}
+
+                    {/* Today's Statistics Section */}
+                    <div className="mt-5 pt-4 border-t border-slate-100">
+                      <button
+                        onClick={() => setExpandedDevice(isExpanded ? null : device.id)}
+                        className="w-full flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3.5 py-2.5 rounded-xl border border-slate-200/80 transition-colors cursor-pointer"
+                      >
+                        <span>สถิติและประวัติวันนี้ (1 วัน)</span>
+                        <svg
+                          className={`w-4 h-4 transform transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {/* Expanded Stats & Timeline */}
+                      {isExpanded && stats && (
+                        <div className="mt-3 space-y-3 animate-fadeIn">
+                          {/* 4 Stat Boxes */}
+                          <div className="grid grid-cols-2 gap-2 text-center">
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                              <span className="text-[10px] font-semibold text-slate-400 block">เสียบชาร์จ</span>
+                              <span className="text-sm font-bold text-slate-800 font-mono">{stats.pluggedCount} ครั้ง</span>
+                            </div>
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                              <span className="text-[10px] font-semibold text-slate-400 block">ถอดชาร์จ</span>
+                              <span className="text-sm font-bold text-slate-800 font-mono">{stats.unpluggedCount} ครั้ง</span>
+                            </div>
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                              <span className="text-[10px] font-semibold text-slate-400 block">แบตสูงสุด</span>
+                              <span className="text-sm font-bold text-emerald-600 font-mono">{stats.maxBattery}%</span>
+                            </div>
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                              <span className="text-[10px] font-semibold text-slate-400 block">แบตต่ำสุด</span>
+                              <span className="text-sm font-bold text-rose-600 font-mono">{stats.minBattery}%</span>
+                            </div>
+                          </div>
+
+                          {/* Event Timeline */}
+                          <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/60 max-h-44 overflow-y-auto space-y-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ประวัติเหตุการณ์วันนี้</p>
+                            {stats.history && stats.history.length > 0 ? (
+                              stats.history.map((evt) => (
+                                <div key={evt.id} className="flex items-center justify-between text-xs text-slate-600 py-1 border-b border-slate-200/40 last:border-0">
+                                  <span className="font-medium">{formatEventType(evt.eventType, evt.batteryLevel)}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono">
+                                    {new Date(evt.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs text-slate-400 text-center py-2">ไม่มีประวัติเหตุการณ์เพิ่มเติมในวันนี้</p>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-800/80 h-3 rounded-full overflow-hidden p-0.5 border border-slate-700/50 shadow-inner">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ease-out shadow-sm ${getBatteryColor(device.batteryLevel)}`}
-                      style={{ width: `${device.batteryLevel}%` }}
-                    />
+                  {/* Footer */}
+                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-mono">
+                    <span>รหัส: {device.id.slice(0, 8)}</span>
+                    <span>
+                      ใช้งานล่าสุด: {new Date(device.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                    </span>
                   </div>
-
-                  {/* Time Estimation Display */}
-                  {device.timeRemaining ? (
-                    <div className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-300 bg-slate-800/70 px-3 py-2 rounded-xl border border-slate-700/60 shadow-inner">
-                      <svg className="w-4 h-4 text-sky-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="tracking-wide">{formatTimeRemaining(device.timeRemaining, device.isCharging)}</span>
-                    </div>
-                  ) : (
-                    <div className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-900/40 px-3 py-2 rounded-xl border border-slate-800/80">
-                      <svg className="w-4 h-4 text-slate-600 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <span>Calculating time estimate...</span>
-                    </div>
-                  )}
                 </div>
-
-                {/* Footer: Timestamp */}
-                <div className="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500 font-mono">
-                  <span>ID: {device.id.slice(0, 8)}...</span>
-                  <span>
-                    Last seen: {new Date(device.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

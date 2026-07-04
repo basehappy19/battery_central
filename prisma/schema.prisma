@@ -7,13 +7,27 @@ generator client {
 }
 
 model Device {
-  id            String    @id @default(uuid())
+  id            String       @id @default(uuid())
   name          String
-  platform      String    // e.g., "Windows", "iOS", "Android", "ESP32"
-  batteryLevel  Int       // 0-100
+  platform      String       // e.g., "Windows", "iOS", "Android", "ESP32"
+  batteryLevel  Int          // 0-100
   isCharging    Boolean
-  prevBattery   Int?      // Previous battery level for rate calculation
-  prevUpdatedAt DateTime? // Previous update timestamp for rate calculation
-  timeRemaining Int?      // Estimated minutes remaining (to full or empty)
-  updatedAt     DateTime  @updatedAt
+  prevBattery   Int?         // Previous battery level for rate calculation
+  prevUpdatedAt DateTime?    // Previous update timestamp for rate calculation
+  timeRemaining Int?         // Estimated minutes remaining (to full or empty)
+  updatedAt     DateTime     @updatedAt
+  logs          BatteryLog[]
 }
+
+model BatteryLog {
+  id           String   @id @default(uuid())
+  deviceId     String
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  batteryLevel Int
+  isCharging   Boolean
+  eventType    String   // e.g., "PLUGGED_IN", "UNPLUGGED", "LEVEL_UPDATE", "INITIAL"
+  createdAt    DateTime @default(now())
+
+  @@index([deviceId, createdAt])
+}
+

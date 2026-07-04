@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Placeholder notification service
 async function sendNotification(message: string) {
   console.log(`[ALERT NOTIFICATION]: ${message}`);
-  // In production: integrate with Webhooks, Push Notifications, Telegram, or Email
 }
 
 export async function POST(request: Request) {
@@ -23,7 +21,6 @@ export async function POST(request: Request) {
     const currentIsCharging = Boolean(isCharging);
     const now = new Date();
 
-    // 1. Fetch existing device to compare states
     const existingDevice = await prisma.device.findUnique({
       where: { id: deviceId },
     });
@@ -31,23 +28,32 @@ export async function POST(request: Request) {
     let timeRemaining: number | null = null;
     let prevBattery: number | null = null;
     let prevUpdatedAt: Date | null = null;
+    let eventType: string | null = null;
 
-    if (existingDevice) {
+    if (!existingDevice) {
+      if (currentIsCharging && currentBattery === 100) {
+        eventType = 'FULL_CHARGE';
+      } else if (currentIsCharging) {
+        eventType = 'PLUGGED_IN';
+      }
+    } else {
       prevBattery = existingDevice.batteryLevel;
       prevUpdatedAt = existingDevice.updatedAt;
 
-      // 2. Alert Logic: Check for charging state transitions
       if (existingDevice.isCharging !== currentIsCharging) {
+        eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
         const deviceName = existingDevice.name || `Device (${deviceId.slice(0, 6)})`;
         if (currentIsCharging) {
-          await sendNotification(`⚡ ${deviceName} has been plugged in (Battery: ${currentBattery}%).`);
+          await sendNotification(`${deviceName} เริ่มเสียบชาร์จ (แบตเตอรี่: ${currentBattery}%)`);
         } else {
-          await sendNotification(`🔌 ${deviceName} has been unplugged (Battery: ${currentBattery}%).`);
+          await sendNotification(`${deviceName} ถอดสายชาร์จ (แบตเตอรี่: ${currentBattery}%)`);
         }
+      } else if (currentIsCharging && currentBattery === 100 && existingDevice.batteryLevel < 100) {
+        eventType = 'FULL_CHARGE';
+        const deviceName = existingDevice.name || `Device (${deviceId.slice(0, 6)})`;
+        await sendNotification(`${deviceName} ชาร์จเต็ม 100%`);
       }
 
-      // 3. Time Estimation Logic
-      // Only calculate rate if battery level changed and we stayed in the same charging state
       if (
         existingDevice.isCharging === currentIsCharging &&
         prevBattery !== currentBattery &&
@@ -57,14 +63,12 @@ export async function POST(request: Request) {
 
         if (timeDiffMinutes > 0) {
           if (currentIsCharging && currentBattery > prevBattery) {
-            // Charging rate (% per minute)
             const chargeRatePerMin = (currentBattery - prevBattery) / timeDiffMinutes;
             if (chargeRatePerMin > 0) {
               const percentToFull = 100 - currentBattery;
               timeRemaining = Math.round(percentToFull / chargeRatePerMin);
             }
           } else if (!currentIsCharging && currentBattery < prevBattery) {
-            // Discharging rate (% per minute)
             const dischargeRatePerMin = (prevBattery - currentBattery) / timeDiffMinutes;
             if (dischargeRatePerMin > 0) {
               timeRemaining = Math.round(currentBattery / dischargeRatePerMin);
@@ -72,12 +76,10 @@ export async function POST(request: Request) {
           }
         }
       } else if (existingDevice.isCharging === currentIsCharging) {
-        // Keep previous time remaining if battery level hasn't changed yet in this cycle
         timeRemaining = existingDevice.timeRemaining;
       }
     }
 
-    // 4. Upsert device record with updated telemetry and estimation
     const device = await prisma.device.upsert({
       where: { id: deviceId },
       update: {
@@ -100,6 +102,17 @@ export async function POST(request: Request) {
         timeRemaining: null,
       },
     });
+
+    if (eventType) {
+      await prisma.batteryLog.create({
+        data: {
+          deviceId: deviceId,
+          batteryLevel: currentBattery,
+          isCharging: currentIsCharging,
+          eventType: eventType,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, device }, { status: 200 });
   } catch (error) {
