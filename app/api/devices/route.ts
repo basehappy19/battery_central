@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import type { Device, BatteryLog } from '@prisma/client';
 import { checkRateLimit, getClientIp, verifyDashboardAuth, sanitizeString } from '@/lib/security';
@@ -206,8 +207,8 @@ export async function POST(request: Request) {
     const cleanName = name ? sanitizeString(name, 50) : 'อุปกรณ์ใหม่';
     const cleanPlatform = platform ? sanitizeString(platform, 30) : 'Android';
 
-    const randomHex = Math.random().toString(36).substring(2, 8).toLowerCase();
-    const newId = `bat-${randomHex}`;
+    const randomHex = crypto.randomBytes(12).toString('hex');
+    const newId = `bat-${randomHex.slice(0, 6)}-${randomHex.slice(6, 12)}-${randomHex.slice(12, 18)}-${randomHex.slice(18, 24)}`;
 
     const newDevice = await prisma.device.create({
       data: {

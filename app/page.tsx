@@ -1022,7 +1022,7 @@ export default function BatteryDashboard() {
                 <form onSubmit={handleCreateDevice} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      ชื่ออุปกรณ์ (เช่น มือถือ GALAXY S24 ULTRA, แท็บเล็ตทำงาน)
+                      ชื่ออุปกรณ์
                     </label>
                     <input
                       type="text"
