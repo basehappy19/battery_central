@@ -925,11 +925,11 @@ export default function BatteryDashboard() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-6 md:p-10 lg:p-12 pb-24 font-sans selection:bg-slate-200">
       {/* Toast Notification Container */}
-      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
+      <div className="fixed bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[9999] flex flex-col gap-2.5 sm:max-w-sm sm:w-full pointer-events-none items-center sm:items-end">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border backdrop-blur-md text-xs sm:text-sm font-semibold transition-all ${
+            className={`pointer-events-auto flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-3.5 rounded-2xl shadow-2xl border backdrop-blur-md text-xs sm:text-sm font-semibold w-full sm:w-auto max-w-full transition-all ${
               toast.isClosing ? "animate-toast-out" : "animate-toast-in"
             } ${
               toast.type === "success"
