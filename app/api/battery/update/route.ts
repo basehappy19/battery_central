@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { Device } from '@prisma/client';
+import { checkRateLimit, getClientIp, verifyApiKey, sanitizeString } from '@/lib/security';
 
 async function sendNotification(message: string): Promise<void> {
   console.log(`[ALERT NOTIFICATION]: ${message}`);
@@ -12,10 +13,17 @@ interface UpdatePayload {
   platform?: string;
   batteryLevel?: number | string;
   isCharging?: boolean | string;
+  apiKey?: string;
 }
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`update_battery_${ip}`, 60, 60000); // Max 60 reqs/min per IP
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too Many Requests: Rate limit exceeded' }, { status: 429 });
+    }
+
     const body = (await request.json()) as UpdatePayload;
     const { deviceId, name, platform, batteryLevel, isCharging } = body;
 
@@ -26,12 +34,24 @@ export async function POST(request: Request) {
       );
     }
 
+    const isValidApiKey = await verifyApiKey(request, body as Record<string, unknown>);
+    if (!isValidApiKey) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid API Key' }, { status: 401 });
+    }
+
+    const cleanDeviceId = sanitizeString(deviceId, 50);
+    const cleanName = name ? sanitizeString(name, 50) : undefined;
+    const cleanPlatform = platform ? sanitizeString(platform, 30) : undefined;
+
     const currentBattery = Math.max(0, Math.min(100, Number(batteryLevel)));
+    if (isNaN(currentBattery)) {
+      return NextResponse.json({ error: 'Invalid batteryLevel value' }, { status: 400 });
+    }
     const currentIsCharging = Boolean(isCharging);
     const now = new Date();
 
     const existingDevice: Device | null = await prisma.device.findUnique({
-      where: { id: deviceId },
+      where: { id: cleanDeviceId },
     });
 
     if (existingDevice && existingDevice.acceptingUpdates === false) {
@@ -60,7 +80,7 @@ export async function POST(request: Request) {
 
       if (existingDevice.isCharging !== currentIsCharging) {
         eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
-        const deviceName = existingDevice.name || `Device (${deviceId.slice(0, 6)})`;
+        const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
         if (currentIsCharging) {
           await sendNotification(`${deviceName} เริ่มเสียบชาร์จ (แบตเตอรี่: ${currentBattery}%)`);
         } else {
@@ -68,7 +88,7 @@ export async function POST(request: Request) {
         }
       } else if (currentIsCharging && currentBattery === 100 && existingDevice.batteryLevel < 100) {
         eventType = 'FULL_CHARGE';
-        const deviceName = existingDevice.name || `Device (${deviceId.slice(0, 6)})`;
+        const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
         await sendNotification(`${deviceName} ชาร์จเต็ม 100%`);
       } else if (existingDevice.batteryLevel !== currentBattery) {
         eventType = 'LEVEL_UPDATE';
@@ -102,20 +122,20 @@ export async function POST(request: Request) {
     }
 
     const device = await prisma.device.upsert({
-      where: { id: deviceId },
+      where: { id: cleanDeviceId },
       update: {
         batteryLevel: currentBattery,
         isCharging: currentIsCharging,
         prevBattery: existingDevice ? existingDevice.batteryLevel : null,
         prevUpdatedAt: existingDevice ? existingDevice.updatedAt : null,
         timeRemaining: timeRemaining,
-        ...(name && { name: String(name) }),
-        ...(platform && { platform: String(platform) }),
+        ...(cleanName && { name: cleanName }),
+        ...(cleanPlatform && { platform: cleanPlatform }),
       },
       create: {
-        id: deviceId,
-        name: name ? String(name) : `Device (${deviceId.slice(0, 6)})`,
-        platform: platform ? String(platform) : 'Unknown',
+        id: cleanDeviceId,
+        name: cleanName || `Device (${cleanDeviceId.slice(0, 6)})`,
+        platform: cleanPlatform || 'Unknown',
         batteryLevel: currentBattery,
         isCharging: currentIsCharging,
         prevBattery: null,
@@ -128,7 +148,7 @@ export async function POST(request: Request) {
     if (eventType) {
       await prisma.batteryLog.create({
         data: {
-          deviceId: deviceId,
+          deviceId: cleanDeviceId,
           batteryLevel: currentBattery,
           isCharging: currentIsCharging,
           eventType: eventType,

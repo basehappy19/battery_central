@@ -1,13 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { Device, BatteryLog } from '@prisma/client';
+import { checkRateLimit, getClientIp, verifyDashboardAuth, sanitizeString } from '@/lib/security';
 
 type DeviceWithLogs = Device & {
   logs: BatteryLog[];
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`get_devices_${ip}`, 120, 60000); // Max 120 reqs/min per IP
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
+    }
+
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
@@ -154,17 +161,31 @@ interface PatchPayload {
 
 export async function PATCH(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`patch_devices_${ip}`, 30, 60000); // Max 30 reqs/min
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
+    }
+
+    const isAuthorized = await verifyDashboardAuth(request);
+    if (!isAuthorized) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid dashboard session token' }, { status: 401 });
+    }
+
     const body = (await request.json()) as PatchPayload;
     const { id, name, acceptingUpdates } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing device id' }, { status: 400 });
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'Missing or invalid device id' }, { status: 400 });
     }
 
+    const cleanId = sanitizeString(id, 50);
+    const cleanName = name !== undefined ? sanitizeString(name, 50) : undefined;
+
     const updated = await prisma.device.update({
-      where: { id },
+      where: { id: cleanId },
       data: {
-        ...(name !== undefined && { name: String(name).trim() }),
+        ...(cleanName !== undefined && { name: cleanName }),
         ...(acceptingUpdates !== undefined && { acceptingUpdates: Boolean(acceptingUpdates) }),
       },
     });
