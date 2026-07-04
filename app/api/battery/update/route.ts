@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     try {
       body = (await request.json()) as UpdatePayload;
     } catch {
-      return NextResponse.json({ error: 'รูปแบบ JSON ไม่ถูกต้อง (Invalid JSON Syntax) กรุณาตรวจสอบเครื่องหมายปีกกา ฟันหนู และลูกน้ำ' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid JSON syntax' }, { status: 400 });
     }
 
     const deviceId = body?.deviceId || body?.device_id || body?.id;
@@ -42,18 +42,18 @@ export async function POST(request: Request) {
     const platform = body?.platform;
 
     if (!deviceId) {
-      return NextResponse.json({ error: 'ขาดข้อมูลสำคัญ: deviceId (ไม่พบรหัสอุปกรณ์ใน JSON ที่ส่งมา)' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing deviceId' }, { status: 400 });
     }
     if (batteryLevel === undefined || batteryLevel === null) {
-      return NextResponse.json({ error: 'ขาดข้อมูลสำคัญ: batteryLevel (ไม่พบระดับแบตเตอรี่ใน JSON ที่ส่งมา)' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing batteryLevel' }, { status: 400 });
     }
     if (isCharging === undefined || isCharging === null) {
-      return NextResponse.json({ error: 'ขาดข้อมูลสำคัญ: isCharging (ไม่พบสถานะการชาร์จใน JSON ที่ส่งมา)' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing isCharging' }, { status: 400 });
     }
 
     const isValidApiKey = await verifyApiKey(request, body as Record<string, unknown>);
     if (!isValidApiKey) {
-      return NextResponse.json({ error: 'Unauthorized: API Key ไม่ถูกต้อง กรุณาตรวจสอบรหัสลับจากหน้าระบบ' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized: Invalid API Key' }, { status: 401 });
     }
 
     const cleanDeviceId = String(deviceId).trim();
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
     if (rawBatteryStr.includes('[') || rawChargingStr.includes('[')) {
       return NextResponse.json(
-        { error: `ข้อผิดพลาด (400): ค่าที่ส่งมายังเป็นตัวปรข้อความดิบ (batteryLevel="${rawBatteryStr}", isCharging="${rawChargingStr}") กรุณาแทนที่ด้วยตัวเลขระดับแบตเตอรี่และสถานะ true/false จริงก่อนยิงข้อมูล` },
+        { error: 'Invalid values: raw magic text received' },
         { status: 400 }
       );
     }
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     const cleanedBatteryStr = rawBatteryStr.replace(/[^0-9.]/g, '');
     const currentBattery = Math.max(0, Math.min(100, Number(cleanedBatteryStr)));
     if (isNaN(currentBattery) || cleanedBatteryStr === '') {
-      return NextResponse.json({ error: `ระดับแบตเตอรี่ไม่ถูกต้อง (batteryLevel="${rawBatteryStr}"): กรุณาระบุเป็นตัวเลข 0 - 100` }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid batteryLevel value (0-100)' }, { status: 400 });
     }
 
     let currentIsCharging = false;
@@ -94,14 +94,14 @@ export async function POST(request: Request) {
 
     if (!existingDevice) {
       return NextResponse.json(
-        { error: 'ไม่พบรหัสอุปกรณ์นี้ในระบบ (Device ID Not Found) กรุณากดเพิ่มอุปกรณ์ใหม่จากหน้าเว็บแดชบอร์ดก่อนใช้งาน' },
+        { error: 'Device not found' },
         { status: 404 }
       );
     }
 
     if (existingDevice.acceptingUpdates === false) {
       return NextResponse.json(
-        { error: 'Device updates are currently disabled by user' },
+        { error: 'Device updates disabled' },
         { status: 403 }
       );
     }
