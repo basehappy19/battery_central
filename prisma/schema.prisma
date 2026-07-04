@@ -32,3 +32,9 @@ model BatteryLog {
   @@index([deviceId, createdAt])
 }
 
+model Setting {
+  key   String @id
+  value String
+}
+
+

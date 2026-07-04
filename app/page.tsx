@@ -521,7 +521,7 @@ export default function BatteryDashboard() {
               </svg>
             </div>
             <h1 className="text-xl font-bold text-slate-900">ระบบติดตามแบตเตอรี่</h1>
-            <p className="text-xs text-slate-500 mt-1">กรุณาระบุรหัสผ่านเพื่อเข้าสู่ระบบแดชบอร์ด (เข้าสู่ระบบครั้งเดียวอยู่ได้ถาวร)</p>
+            <p className="text-xs text-slate-500 mt-1">กรุณาระบุรหัสผ่านเพื่อเข้าสู่ระบบแดชบอร์ด</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -544,7 +544,6 @@ export default function BatteryDashboard() {
               {verifying ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
             </button>
           </form>
-          <p className="text-[10px] text-slate-400 text-center mt-6">รหัสผ่านเริ่มต้น: battery123 (หรือตามที่ตั้งค่าในระบบ)</p>
         </div>
       </div>
     );

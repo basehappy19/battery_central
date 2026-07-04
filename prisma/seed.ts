@@ -11,6 +11,15 @@ async function main() {
   console.log('กำลังล้างข้อมูลเดิม...');
   await prisma.batteryLog.deleteMany();
   await prisma.device.deleteMany();
+  await prisma.setting.deleteMany();
+
+  console.log('กำลังตั้งค่ารหัสผ่านในฐานข้อมูล...');
+  await prisma.setting.create({
+    data: {
+      key: 'dashboard_password',
+      value: 'battery123',
+    },
+  });
 
   const now = new Date();
   const getTodayTime = (hoursAgo: number, minutesAgo = 0) => {
@@ -98,7 +107,7 @@ async function main() {
       batteryLevel: 94,
       isCharging: true,
       timeRemaining: 15,
-      acceptingUpdates: false, // Demo disabled receiving updates
+      acceptingUpdates: false,
       prevBattery: 90,
       updatedAt: getTodayTime(0, 3),
       logs: [

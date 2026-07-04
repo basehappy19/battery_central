@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 interface AuthPayload {
   password?: string;
@@ -9,7 +10,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as AuthPayload;
     const { password } = body;
 
-    const correctPassword = process.env.DASHBOARD_PASSWORD || "battery123";
+    const setting = await prisma.setting.findUnique({
+      where: { key: 'dashboard_password' },
+    });
+
+    const correctPassword = setting?.value || "battery123";
 
     if (password === correctPassword) {
       return NextResponse.json({ success: true, token: "auth_ok" }, { status: 200 });
