@@ -538,7 +538,10 @@ export default function BatteryDashboard() {
   const fetchDevices = useCallback(async (isInitial = false): Promise<void> => {
     try {
       if (isInitial) setLoading(true);
-      const res = await fetch("/api/devices");
+      const res = await fetch("/api/devices", {
+        cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+      });
       if (!res.ok) throw new Error("Failed to fetch");
       const data = (await res.json()) as { devices: Device[]; systemApiKey?: string };
       setDevices(data.devices || []);
@@ -733,6 +736,7 @@ export default function BatteryDashboard() {
         setDevices((prev) => prev.filter((d) => d.id !== id));
         showToast(`ลบอุปกรณ์ "${name}" ออกจากระบบแล้ว`, "info");
         handleCloseDeleteModal();
+        fetchDevices(false);
       } else {
         const data = (await res.json()) as { error?: string };
         showToast(data.error || "ไม่สามารถลบอุปกรณ์ได้ กรุณาลองใหม่", "error");
@@ -1285,7 +1289,7 @@ export default function BatteryDashboard() {
                   <form onSubmit={handleCreateDevice} className="space-y-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        ชื่ออุปกรณ์ (เช่น มือถือ GALAXY S24 ULTRA, แท็บเล็ตทำงาน)
+                        ชื่ออุปกรณ์
                       </label>
                       <input
                         type="text"
