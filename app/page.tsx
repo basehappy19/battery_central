@@ -483,6 +483,14 @@ export default function BatteryDashboard() {
   const [isClosingDeleteModal, setIsClosingDeleteModal] = useState(false);
   const [deletingDevice, setDeletingDevice] = useState(false);
 
+  // Change Password Modal State
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState<boolean>(false);
+  const [isClosingChangePasswordModal, setIsClosingChangePasswordModal] = useState<boolean>(false);
+  const [oldPasswordInput, setOldPasswordInput] = useState<string>("");
+  const [newPasswordInput, setNewPasswordInput] = useState<string>("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState<string>("");
+  const [changingPassword, setChangingPassword] = useState<boolean>(false);
+
   // Toast System
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -750,6 +758,71 @@ export default function BatteryDashboard() {
     }
   };
 
+  const handleOpenChangePasswordModal = () => {
+    setOldPasswordInput("");
+    setNewPasswordInput("");
+    setConfirmPasswordInput("");
+    setShowChangePasswordModal(true);
+    setIsClosingChangePasswordModal(false);
+  };
+
+  const handleCloseChangePasswordModal = () => {
+    setIsClosingChangePasswordModal(true);
+    setTimeout(() => {
+      setShowChangePasswordModal(false);
+      setIsClosingChangePasswordModal(false);
+      setOldPasswordInput("");
+      setNewPasswordInput("");
+      setConfirmPasswordInput("");
+    }, 150);
+  };
+
+  const handleConfirmChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oldPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+      showToast("กรุณากรอกข้อมูลให้ครบทุกช่อง", "error");
+      return;
+    }
+    if (newPasswordInput !== confirmPasswordInput) {
+      showToast("รหัสผ่านใหม่และการยืนยันไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง", "error");
+      return;
+    }
+    if (newPasswordInput.trim().length < 4) {
+      showToast("รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร", "error");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          oldPassword: oldPasswordInput,
+          newPassword: newPasswordInput,
+          confirmPassword: confirmPasswordInput,
+        }),
+      });
+      const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
+      if (res.ok && data.success) {
+        showToast("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่", "success");
+        handleCloseChangePasswordModal();
+        setTimeout(() => {
+          localStorage.removeItem("dashboard_auth");
+          setAuthenticated(false);
+          setPassword("");
+        }, 1000);
+      } else {
+        showToast(data.error || "ไม่สามารถเปลี่ยนรหัสผ่านได้", "error");
+      }
+    } catch (err) {
+      console.error("Failed to change password:", err);
+      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const handleOpenModal = () => {
     setCreatedResult(null);
     setIsClosingModal(false);
@@ -897,7 +970,7 @@ export default function BatteryDashboard() {
                 รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์
               </p>
             </div>
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
                 onClick={handleOpenReorderModal}
                 disabled={devices.length <= 1}
@@ -917,6 +990,16 @@ export default function BatteryDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                 </svg>
                 <span>เพิ่มอุปกรณ์ใหม่</span>
+              </button>
+              <button
+                onClick={handleOpenChangePasswordModal}
+                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm px-5 py-2.5 rounded-2xl border border-slate-300 shadow-sm transition-all hover:shadow cursor-pointer"
+                title="เปลี่ยนรหัสผ่านเข้าสู่ระบบแดชบอร์ด"
+              >
+                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <span>เปลี่ยนรหัสผ่าน</span>
               </button>
             </div>
           </div>
@@ -1184,6 +1267,100 @@ export default function BatteryDashboard() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {showChangePasswordModal && (
+          <div
+            onClick={handleCloseChangePasswordModal}
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+              isClosingChangePasswordModal ? "animate-fade-out" : "animate-fade-in"
+            }`}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
+                isClosingChangePasswordModal ? "animate-modal-out" : "animate-modal-in"
+              }`}
+            >
+              <div className="flex items-center gap-3.5 mb-6 pb-4 border-b border-slate-100">
+                <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center border border-amber-200 shrink-0">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">เปลี่ยนรหัสผ่านแดชบอร์ด</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">กรอกรหัสเดิมและยืนยันรหัสใหม่ 2 ครั้ง</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleConfirmChangePassword} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    รหัสผ่านเดิม (Old Password) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={oldPasswordInput}
+                    onChange={(e) => setOldPasswordInput(e.target.value)}
+                    placeholder="ระบุรหัสผ่านปัจจุบัน"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    รหัสผ่านใหม่ (New Password) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="ระบุรหัสผ่านใหม่ (อย่างน้อย 4 ตัวอักษร)"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    ยืนยันรหัสผ่านใหม่ (Confirm New Password) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPasswordInput}
+                    onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                    placeholder="พิมพ์รหัสผ่านใหม่อีกครั้งเพื่อยืนยัน"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div className="pt-3 flex items-center gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={handleCloseChangePasswordModal}
+                    disabled={changingPassword}
+                    className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={changingPassword || !oldPasswordInput || !newPasswordInput || !confirmPasswordInput}
+                    className="w-1/2 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                  >
+                    {changingPassword ? (
+                      <span>กำลังบันทึก...</span>
+                    ) : (
+                      <span>บันทึกและออกจากระบบ</span>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
