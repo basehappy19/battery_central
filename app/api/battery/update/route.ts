@@ -37,11 +37,29 @@ export async function POST(request: Request) {
     const cleanName = name !== undefined ? String(name).trim() : undefined;
     const cleanPlatform = platform !== undefined ? String(platform).trim() : undefined;
 
-    const currentBattery = Math.max(0, Math.min(100, Number(batteryLevel)));
-    if (isNaN(currentBattery)) {
-      return NextResponse.json({ error: 'Invalid batteryLevel value' }, { status: 400 });
+    if (String(batteryLevel).trim() === '[battery_level]' || String(isCharging).trim() === '[is_charging]') {
+      return NextResponse.json(
+        { error: 'กรุณาแทนที่ค่า [battery_level] และ [is_charging] ด้วยตัวเลขหรือค่าจริงจากอุปกรณ์ก่อนส่งมอบ' },
+        { status: 400 }
+      );
     }
-    const currentIsCharging = Boolean(isCharging);
+
+    const cleanedBatteryStr = String(batteryLevel).replace(/[^0-9.]/g, '');
+    const currentBattery = Math.max(0, Math.min(100, Number(cleanedBatteryStr)));
+    if (isNaN(currentBattery) || cleanedBatteryStr === '') {
+      return NextResponse.json({ error: 'Invalid batteryLevel value: กรุณาระบุตัวเลขระดับแบตเตอรี่ (0-100)' }, { status: 400 });
+    }
+
+    let currentIsCharging = false;
+    if (typeof isCharging === 'boolean') {
+      currentIsCharging = isCharging;
+    } else if (typeof isCharging === 'string') {
+      const val = isCharging.trim().toLowerCase();
+      currentIsCharging = val === 'true' || val === '1' || val === 'yes' || val === 'charging' || val === 'plugged' || val === 'on';
+    } else if (typeof isCharging === 'number') {
+      currentIsCharging = isCharging === 1;
+    }
+
     const now = new Date();
 
     // STRICT CHECK: Device MUST exist in the system (pre-registered in Dashboard)
