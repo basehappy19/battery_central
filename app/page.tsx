@@ -262,33 +262,17 @@ interface DeviceCardProps {
   device: Device;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
-  onRename: (id: string, newName: string) => Promise<void>;
+  onPromptRename: (id: string, name: string) => void;
   onToggleAccept: (id: string, currentStatus: boolean) => Promise<void>;
   onPromptDelete: (id: string, name: string) => void;
   onToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, onToggleAccept, onPromptDelete, onToast }: DeviceCardProps) => {
+const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRename, onToggleAccept, onPromptDelete, onToast }: DeviceCardProps) => {
   const style = useMemo(() => getPlatformStyle(device.platform, device.isOffline), [device.platform, device.isOffline]);
   const timeFormatted = useMemo(() => formatTimeRemaining(device.timeRemaining, device.isCharging, device.isOffline), [device.timeRemaining, device.isCharging, device.isOffline]);
   const batteryColor = useMemo(() => getBatteryColor(device.batteryLevel, device.isOffline), [device.batteryLevel, device.isOffline]);
   const stats = device.todayStats;
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(device.name);
-  const [saving, setSaving] = useState(false);
-
-  const handleSaveName = async () => {
-    if (!editName.trim() || editName === device.name) {
-      setIsEditing(false);
-      return;
-    }
-    setSaving(true);
-    await onRename(device.id, editName);
-    onToast('เปลี่ยนชื่ออุปกรณ์เรียบร้อยแล้ว', 'success');
-    setSaving(false);
-    setIsEditing(false);
-  };
 
   return (
     <div className={`bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between h-full ${!device.acceptingUpdates ? "opacity-75 border-slate-300 bg-slate-50/50" : device.isOffline ? "border-amber-300/80 bg-amber-50/20" : "border-slate-200/80 hover:border-slate-300"}`}>
@@ -299,53 +283,20 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
               {style.icon}
             </div>
             <div className="min-w-0 flex-1">
-              {isEditing ? (
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    disabled={saving}
-                    className="w-full text-xs sm:text-sm font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300 focus:outline-none focus:border-emerald-500"
-                    autoFocus
-                  />
-                  <button
-                    onClick={handleSaveName}
-                    disabled={saving}
-                    className="p-1.5 text-emerald-600 hover:text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 cursor-pointer"
-                    title="บันทึก"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => { setIsEditing(false); setEditName(device.name); }}
-                    disabled={saving}
-                    className="p-1.5 text-rose-600 hover:text-rose-700 bg-rose-50 rounded-lg border border-rose-200 cursor-pointer"
-                    title="ยกเลิก"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 group">
-                  <h2 className="font-bold text-base sm:text-lg text-slate-900 truncate">
-                    {device.name}
-                  </h2>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="text-slate-400 hover:text-slate-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
-                    title="เปลี่ยนชื่ออุปกรณ์"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 group">
+                <h2 className="font-bold text-base sm:text-lg text-slate-900 truncate">
+                  {device.name}
+                </h2>
+                <button
+                  onClick={() => onPromptRename(device.id, device.name)}
+                  className="text-slate-400 hover:text-slate-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
+                  title="คลิกเพื่อเปลี่ยนชื่ออุปกรณ์"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block">
                   {device.platform}
@@ -519,6 +470,12 @@ export default function BatteryDashboard() {
   const [creatingDevice, setCreatingDevice] = useState(false);
   const [createdResult, setCreatedResult] = useState<{ id: string; name: string; apiKey: string } | null>(null);
 
+  // Rename Device Modal State
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameInput, setRenameInput] = useState("");
+  const [isClosingRenameModal, setIsClosingRenameModal] = useState(false);
+  const [renamingDevice, setRenamingDevice] = useState(false);
+
   // Delete Device Confirmation Modal State
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [isClosingDeleteModal, setIsClosingDeleteModal] = useState(false);
@@ -602,7 +559,29 @@ export default function BatteryDashboard() {
     setExpandedDevice((prev) => (prev === id ? null : id));
   }, []);
 
-  const handleRenameDevice = useCallback(async (id: string, newName: string): Promise<void> => {
+  const handlePromptRename = useCallback((id: string, currentName: string) => {
+    setRenameTarget({ id, name: currentName });
+    setRenameInput(currentName);
+    setIsClosingRenameModal(false);
+  }, []);
+
+  const handleCloseRenameModal = () => {
+    setIsClosingRenameModal(true);
+    setTimeout(() => {
+      setRenameTarget(null);
+      setIsClosingRenameModal(false);
+    }, 150);
+  };
+
+  const handleConfirmRename = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!renameTarget || !renameInput.trim() || renameInput === renameTarget.name) {
+      handleCloseRenameModal();
+      return;
+    }
+    const { id } = renameTarget;
+    const newName = renameInput.trim();
+    setRenamingDevice(true);
     try {
       const token = localStorage.getItem("dashboard_auth") || "";
       const res = await fetch("/api/devices", {
@@ -615,6 +594,8 @@ export default function BatteryDashboard() {
       });
       if (res.ok) {
         setDevices((prev) => prev.map((d) => (d.id === id ? { ...d, name: newName } : d)));
+        showToast(`เปลี่ยนชื่ออุปกรณ์เป็น "${newName}" เรียบร้อยแล้ว`, "success");
+        handleCloseRenameModal();
       } else {
         const data = (await res.json()) as { error?: string };
         showToast(data.error || "ไม่สามารถเปลี่ยนชื่ออุปกรณ์ได้", "error");
@@ -623,8 +604,10 @@ export default function BatteryDashboard() {
     } catch (err) {
       console.error("Failed to rename device:", err);
       showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
+    } finally {
+      setRenamingDevice(false);
     }
-  }, [showToast, fetchDevices]);
+  };
 
   const handleToggleAccept = useCallback(async (id: string, currentStatus: boolean): Promise<void> => {
     try {
@@ -860,6 +843,80 @@ export default function BatteryDashboard() {
           </div>
         </header>
 
+        {renameTarget && (
+          <div
+            onClick={handleCloseRenameModal}
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+              isClosingRenameModal ? "animate-fade-out" : "animate-fade-in"
+            }`}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
+                isClosingRenameModal ? "animate-modal-out" : "animate-modal-in"
+              }`}
+            >
+              <div className="flex items-center gap-3.5 mb-6">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center border border-indigo-200 shrink-0">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">เปลี่ยนชื่ออุปกรณ์</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">ระบุชื่อใหม่ที่ต้องการสำหรับอุปกรณ์นี้</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleConfirmRename} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    ชื่ออุปกรณ์ใหม่
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={renameInput}
+                    onChange={(e) => setRenameInput(e.target.value)}
+                    disabled={renamingDevice}
+                    placeholder="ระบุชื่ออุปกรณ์..."
+                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-300 focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-bold text-slate-900 bg-slate-50 focus:bg-white transition-colors shadow-inner"
+                    autoFocus
+                  />
+                  <p className="text-[11px] font-mono text-slate-400 mt-2">ID: {renameTarget.id}</p>
+                </div>
+
+                <div className="pt-2 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCloseRenameModal}
+                    disabled={renamingDevice}
+                    className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={renamingDevice}
+                    className="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                  >
+                    {renamingDevice ? (
+                      <span>กำลังบันทึก...</span>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>บันทึกชื่อใหม่</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {deleteTarget && (
           <div
             onClick={handleCloseDeleteModal}
@@ -1022,7 +1079,7 @@ export default function BatteryDashboard() {
                 <form onSubmit={handleCreateDevice} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      ชื่ออุปกรณ์
+                      ชื่ออุปกรณ์ (เช่น มือถือ GALAXY S24 ULTRA, แท็บเล็ตทำงาน)
                     </label>
                     <input
                       type="text"
@@ -1105,7 +1162,7 @@ export default function BatteryDashboard() {
                 device={device}
                 isExpanded={expandedDevice === device.id}
                 onToggleExpand={handleToggleExpand}
-                onRename={handleRenameDevice}
+                onPromptRename={handlePromptRename}
                 onToggleAccept={handleToggleAccept}
                 onPromptDelete={handlePromptDelete}
                 onToast={showToast}
