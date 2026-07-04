@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Device } from '@prisma/client';
 
-async function sendNotification(message: string) {
+async function sendNotification(message: string): Promise<void> {
   console.log(`[ALERT NOTIFICATION]: ${message}`);
+}
+
+interface UpdatePayload {
+  deviceId?: string;
+  name?: string;
+  platform?: string;
+  batteryLevel?: number | string;
+  isCharging?: boolean | string;
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as UpdatePayload;
     const { deviceId, name, platform, batteryLevel, isCharging } = body;
 
     if (!deviceId || batteryLevel === undefined || isCharging === undefined) {
@@ -21,7 +30,7 @@ export async function POST(request: Request) {
     const currentIsCharging = Boolean(isCharging);
     const now = new Date();
 
-    const existingDevice = await prisma.device.findUnique({
+    const existingDevice: Device | null = await prisma.device.findUnique({
       where: { id: deviceId },
     });
 
@@ -56,6 +65,7 @@ export async function POST(request: Request) {
 
       if (
         existingDevice.isCharging === currentIsCharging &&
+        prevBattery !== null &&
         prevBattery !== currentBattery &&
         prevUpdatedAt
       ) {
@@ -115,7 +125,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, device }, { status: 200 });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to update battery status:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },
