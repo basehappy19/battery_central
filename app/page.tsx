@@ -350,17 +350,11 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onRename, o
                 <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block">
                   {device.platform}
                 </span>
-                {device.isOffline && (
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
-                    ขาดการติดต่อ ~{formatDuration(device.offlineDurationMinutes || 0)}
-                  </span>
-                )}
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => {
                 onToggleAccept(device.id, device.acceptingUpdates);
@@ -850,7 +844,7 @@ export default function BatteryDashboard() {
               </button>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-              รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์ (บังคับตรวจ ID และ Secret Key)
+              รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
