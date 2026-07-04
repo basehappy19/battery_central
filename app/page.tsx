@@ -988,7 +988,7 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
+              className={`bg-white rounded-3xl ${createdResult ? "max-w-2xl" : "max-w-lg"} w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto transition-all duration-300 ${
                 isClosingModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -1001,54 +1001,45 @@ export default function BatteryDashboard() {
                 </svg>
               </button>
 
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-200 shrink-0">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">ลงทะเบียนอุปกรณ์ใหม่</h2>
-              </div>
-
               {createdResult ? (
-                <div className="space-y-4 bg-emerald-50/80 p-5 rounded-2xl border border-emerald-200 animate-fadeIn">
-                  <div className="text-center pb-3 border-b border-emerald-200/60 flex flex-col items-center">
-                    <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mb-2 shadow-sm">
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="space-y-6 animate-fadeIn">
+                  <div className="text-center pb-5 border-b border-slate-200 flex flex-col items-center">
+                    <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center mb-3.5 shadow-md">
+                      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <h3 className="font-bold text-emerald-900 text-base">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; เสร็จสมบูรณ์</h3>
-                    <p className="text-xs text-emerald-700 mt-0.5">นำค่าด้านล่างไปตั้งค่าใน MacroDroid หรือแอปพลิเคชันของคุณ</p>
+                    <h3 className="font-bold text-slate-900 text-xl sm:text-2xl">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; เสร็จสมบูรณ์</h3>
+                    <p className="text-sm text-slate-500 mt-1 font-medium">นำค่าด้านล่างไปตั้งค่าใน MacroDroid หรือแอปพลิเคชันของคุณ</p>
                   </div>
 
-                  <div className="space-y-2.5 text-xs font-mono">
-                    <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200">
-                      <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold">รหัสเครื่อง (Device ID)</span>
-                        <span className="font-bold text-slate-900 text-sm">{createdResult.id}</span>
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-slate-500 block text-xs uppercase font-sans font-bold tracking-wider">รหัสเครื่อง (DEVICE ID)</span>
+                        <span className="font-mono font-bold text-slate-900 text-base sm:text-lg mt-1 block break-all">{createdResult.id}</span>
                       </div>
                       <button
                         onClick={() => copyToClipboard(createdResult.id, "รหัสเครื่อง (Device ID)")}
-                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold font-sans text-xs cursor-pointer transition-colors"
+                        className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold font-sans text-xs sm:text-sm cursor-pointer transition-colors shadow-sm shrink-0"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                         <span>คัดลอก</span>
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200">
-                      <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold">รหัสลับ API (Secret Key)</span>
-                        <span className="font-bold text-slate-900 text-sm">{createdResult.apiKey}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-slate-500 block text-xs uppercase font-sans font-bold tracking-wider">รหัสลับ API (SECRET KEY)</span>
+                        <span className="font-mono font-bold text-slate-900 text-base sm:text-lg mt-1 block break-all">{createdResult.apiKey}</span>
                       </div>
                       <button
                         onClick={() => copyToClipboard(createdResult.apiKey, "รหัสลับ API (Secret Key)")}
-                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold font-sans text-xs cursor-pointer transition-colors"
+                        className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold font-sans text-xs sm:text-sm cursor-pointer transition-colors shadow-sm shrink-0"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                         <span>คัดลอก</span>
@@ -1056,9 +1047,9 @@ export default function BatteryDashboard() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 text-slate-200 p-3.5 rounded-xl text-[11px] font-mono space-y-1">
-                    <span className="text-slate-400 block text-[10px] font-sans font-bold uppercase">ตัวอย่าง JSON สำหรับ MacroDroid / POST Body</span>
-                    <pre className="overflow-x-auto text-emerald-400">
+                  <div className="bg-slate-900 text-slate-200 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm font-mono space-y-2 shadow-inner">
+                    <span className="text-slate-400 block text-xs font-sans font-bold uppercase tracking-wider">ตัวอย่าง JSON สำหรับ MACRODROID / POST BODY</span>
+                    <pre className="overflow-x-auto text-emerald-400 font-semibold pt-1">
 {`{
   "deviceId": "${createdResult.id}",
   "apiKey": "${createdResult.apiKey}",
@@ -1070,72 +1061,83 @@ export default function BatteryDashboard() {
 
                   <button
                     onClick={handleCloseModal}
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer mt-2"
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 rounded-2xl text-sm sm:text-base transition-colors cursor-pointer mt-2 border border-slate-300 shadow-sm"
                   >
                     ปิดหน้าต่างและกลับสู่แดชบอร์ด
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleCreateDevice} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      ชื่ออุปกรณ์ (เช่น มือถือ GALAXY S24 ULTRA, แท็บเล็ตทำงาน)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="ระบุชื่ออุปกรณ์..."
-                      value={newDeviceName}
-                      onChange={(e) => setNewDeviceName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white"
-                      autoFocus
-                    />
+                <>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center border border-slate-200 shrink-0">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900">ลงทะเบียนอุปกรณ์ใหม่</h2>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      แพลตฟอร์ม / ระบบปฏิบัติการ
-                    </label>
-                    <select
-                      value={newDevicePlatform}
-                      onChange={(e) => setNewDevicePlatform(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white"
-                    >
-                      <option value="Android">Android (MacroDroid / Tasker)</option>
-                      <option value="Windows">Windows (PC / Laptop)</option>
-                      <option value="iOS">iOS (iPhone / iPad)</option>
-                      <option value="macOS">macOS (MacBook)</option>
-                      <option value="ESP32">ESP32 / IoT Sensor</option>
-                      <option value="Other">อื่นๆ (Other)</option>
-                    </select>
-                  </div>
+                  <form onSubmit={handleCreateDevice} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        ชื่ออุปกรณ์ (เช่น มือถือ GALAXY S24 ULTRA, แท็บเล็ตทำงาน)
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="ระบุชื่ออุปกรณ์..."
+                        value={newDeviceName}
+                        onChange={(e) => setNewDeviceName(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white"
+                        autoFocus
+                      />
+                    </div>
 
-                  <div className="pt-3 flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
-                    >
-                      ยกเลิก
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={creatingDevice}
-                      className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                    >
-                      {creatingDevice ? (
-                        <span>กำลังสร้างรหัส...</span>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span>สร้างและรับรหัส ID</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        แพลตฟอร์ม / ระบบปฏิบัติการ
+                      </label>
+                      <select
+                        value={newDevicePlatform}
+                        onChange={(e) => setNewDevicePlatform(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white"
+                      >
+                        <option value="Android">Android (MacroDroid / Tasker)</option>
+                        <option value="Windows">Windows (PC / Laptop)</option>
+                        <option value="iOS">iOS (iPhone / iPad)</option>
+                        <option value="macOS">macOS (MacBook)</option>
+                        <option value="ESP32">ESP32 / IoT Sensor</option>
+                        <option value="Other">อื่นๆ (Other)</option>
+                      </select>
+                    </div>
+
+                    <div className="pt-3 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleCloseModal}
+                        className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+                      >
+                        ยกเลิก
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={creatingDevice}
+                        className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                      >
+                        {creatingDevice ? (
+                          <span>กำลังสร้างรหัส...</span>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>สร้างและรับรหัส ID</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </>
               )}
             </div>
           </div>
