@@ -165,6 +165,25 @@ export async function GET(request: Request) {
       };
     });
 
+    const orderSetting = await prisma.setting.findUnique({ where: { key: 'device_order' } });
+    let customOrder: string[] = [];
+    try {
+      if (orderSetting?.value) customOrder = JSON.parse(orderSetting.value);
+    } catch {
+      customOrder = [];
+    }
+
+    if (customOrder.length > 0) {
+      devicesWithStats.sort((a, b) => {
+        const indexA = customOrder.indexOf(a.id);
+        const indexB = customOrder.indexOf(b.id);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return 0;
+      });
+    }
+
     return NextResponse.json(
       { devices: devicesWithStats, systemApiKey },
       {
@@ -324,6 +343,45 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: unknown) {
     console.error('Failed to delete device:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+interface PutOrderPayload {
+  order?: string[];
+}
+
+export async function PUT(request: Request) {
+  try {
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(`put_devices_${ip}`, 30, 60000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
+    }
+
+    const isAuthorized = await verifyDashboardAuth(request);
+    if (!isAuthorized) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid dashboard session token' }, { status: 401 });
+    }
+
+    const body = (await request.json()) as PutOrderPayload;
+    const { order } = body;
+
+    if (!order || !Array.isArray(order)) {
+      return NextResponse.json({ error: 'Invalid order array' }, { status: 400 });
+    }
+
+    const cleanOrder = order.map((id) => sanitizeString(String(id), 50));
+
+    await prisma.setting.upsert({
+      where: { key: 'device_order' },
+      update: { value: JSON.stringify(cleanOrder) },
+      create: { key: 'device_order', value: JSON.stringify(cleanOrder) },
+    });
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error: unknown) {
+    console.error('Failed to update device order:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
