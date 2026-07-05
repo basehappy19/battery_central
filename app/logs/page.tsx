@@ -187,22 +187,11 @@ export default function ApiLogsPage() {
             </h1>
           </div>
 
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-            <div
-              title="ระบบกำลังอัปเดตประวัติการใช้งานแบบเรียลไทม์อัตโนมัติ"
-              className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-emerald-200/80 shadow-xs select-none"
-            >
-              <span className="flex h-2 w-2 relative shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span>เรียลไทม์</span>
-            </div>
-
+          <div className="flex items-center justify-end w-full sm:w-auto">
             <button
               onClick={handleClearLogs}
               disabled={isClearing || logs.length === 0}
-              className="flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-sm px-3.5 py-2 rounded-xl border border-rose-200/60 shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-sm px-4 py-2 rounded-xl border border-rose-200/60 shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
