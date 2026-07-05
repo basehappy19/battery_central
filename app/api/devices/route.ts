@@ -153,7 +153,7 @@ export async function GET() {
       }
 
       const timeSinceUpdateMinutes = (now.getTime() - device.updatedAt.getTime()) / (1000 * 60);
-      const isOffline = timeSinceUpdateMinutes > 15;
+      const isOffline = timeSinceUpdateMinutes > 60;
       const offlineDurationMinutes = isOffline ? Math.round(timeSinceUpdateMinutes) : undefined;
       const offlineSince = isOffline ? device.updatedAt.toISOString() : undefined;
 

@@ -354,10 +354,16 @@ export async function POST(request: Request) {
 
     const timeDiffMinutes = (now.getTime() - new Date(existingDevice.updatedAt).getTime()) / (1000 * 60);
 
-    if (timeDiffMinutes > 15) {
+    if (timeDiffMinutes > 60) {
       eventType = 'RECONNECTED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
-      await sendNotification(formatTelegramAlert('กลับมาเชื่อมต่อระบบ', deviceName, 'กลับมาออนไลน์', [{ label: 'ขาดการติดต่อไป', value: `ประมาณ ${Math.round(timeDiffMinutes)} นาที` }], now));
+      const totalMins = Math.round(timeDiffMinutes);
+      const hrs = Math.floor(totalMins / 60);
+      const mns = totalMins % 60;
+      let durText = `${totalMins} นาที`;
+      if (hrs > 0 && mns > 0) durText = `${hrs} ชม. ${mns} นาที`;
+      else if (hrs > 0 && mns === 0) durText = `${hrs} ชม.`;
+      await sendNotification(formatTelegramAlert('กลับมาเชื่อมต่อระบบ', deviceName, 'กลับมาออนไลน์', [{ label: 'ขาดการติดต่อไป', value: `ประมาณ ${durText}` }], now));
     } else if (existingDevice.isCharging !== currentIsCharging) {
       eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
