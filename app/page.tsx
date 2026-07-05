@@ -116,6 +116,12 @@ const formatEventType = (evt: HistoryEvent): string => {
   switch (evt.eventType) {
     case 'PLUGGED_IN':
       return `เริ่มเสียบสายชาร์จ (${level}%)`;
+    case 'NEAR_FULL':
+      return `แบตใกล้เต็ม (${level}%)`;
+    case 'LOW_BATTERY':
+      return `แบตเตอรี่ต่ำ (${level}%)`;
+    case 'BATTERY_EMPTY':
+      return `แบตเตอรี่หมด (${level}%)`;
     case 'UNPLUGGED':
     case 'FULL_CHARGE': {
       const title = evt.eventType === 'FULL_CHARGE' ? `ชาร์จแบตเตอรี่เต็ม (100%)` : `ถอดสายชาร์จ (${level}%)`;
@@ -258,6 +264,9 @@ const CustomGraphTooltip = ({ active, payload }: any) => {
           {pt.eventType === 'PLUGGED_IN' && 'เริ่มเสียบสายชาร์จ'}
           {pt.eventType === 'UNPLUGGED' && 'ถอดสายชาร์จแล้ว'}
           {pt.eventType === 'FULL' && 'ชาร์จเต็ม 100%'}
+          {pt.eventType === 'NEAR_FULL' && `แบตใกล้เต็ม (${pt.level}%)`}
+          {pt.eventType === 'LOW_BATTERY' && `แบตเตอรี่ต่ำ (${pt.level}%)`}
+          {pt.eventType === 'BATTERY_EMPTY' && `แบตเตอรี่หมด (0%)`}
         </div>
       )}
     </div>
@@ -280,6 +289,10 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
         eventType = 'UNPLUGGED';
       } else if (pt.isCharging && pt.level === 100 && (!prevPt || prevPt.level < 100)) {
         eventType = 'FULL';
+      } else if (pt.isCharging && [80, 90, 95].includes(pt.level) && (!prevPt || prevPt.level < pt.level)) {
+        eventType = 'NEAR_FULL';
+      } else if (!pt.isCharging && [20, 15, 10, 5, 0].includes(pt.level) && (!prevPt || prevPt.level > pt.level)) {
+        eventType = pt.level === 0 ? 'BATTERY_EMPTY' : 'LOW_BATTERY';
       }
 
       const isCharging = pt.isCharging;
@@ -424,6 +437,30 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
                     stroke="#3b82f6"
                     strokeWidth={2}
                     label={{ value: 'เต็ม 100%', fill: '#1d4ed8', fontSize: 10, fontWeight: 700, position: 'top' }}
+                  />
+                );
+              }
+              if (pt.eventType === 'NEAR_FULL') {
+                return (
+                  <ReferenceLine
+                    key={`ref-${idx}`}
+                    x={pt.time}
+                    stroke="#6366f1"
+                    strokeWidth={1.5}
+                    strokeDasharray="3 3"
+                    label={{ value: `ใกล้เต็ม ${pt.level}%`, fill: '#4338ca', fontSize: 10, fontWeight: 700, position: 'top' }}
+                  />
+                );
+              }
+              if (pt.eventType === 'LOW_BATTERY' || pt.eventType === 'BATTERY_EMPTY') {
+                return (
+                  <ReferenceLine
+                    key={`ref-${idx}`}
+                    x={pt.time}
+                    stroke="#ef4444"
+                    strokeWidth={1.5}
+                    strokeDasharray="3 3"
+                    label={{ value: pt.level === 0 ? 'แบตหมด 0%' : `ต่ำ ${pt.level}%`, fill: '#b91c1c', fontSize: 10, fontWeight: 700, position: 'top' }}
                   />
                 );
               }

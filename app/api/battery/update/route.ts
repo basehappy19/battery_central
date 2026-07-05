@@ -5,6 +5,28 @@ import { verifyApiKey } from '@/lib/security';
 
 async function sendNotification(message: string): Promise<void> {
   console.log(`[ALERT NOTIFICATION]: ${message}`);
+  try {
+    const tokenSetting = await prisma.setting.findUnique({ where: { key: 'telegram_bot_token' } });
+    const chatIdSetting = await prisma.setting.findUnique({ where: { key: 'telegram_chat_id' } });
+    
+    const botToken = tokenSetting?.value || process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = chatIdSetting?.value || process.env.TELEGRAM_CHAT_ID;
+
+    if (botToken && chatId) {
+      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML',
+        }),
+      });
+    }
+  } catch (error) {
+    console.error('Failed to send Telegram notification:', error);
+  }
 }
 
 interface UpdatePayload {
@@ -248,19 +270,47 @@ export async function POST(request: Request) {
     if (timeDiffMinutes > 15) {
       eventType = 'RECONNECTED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
-      await sendNotification(`${deviceName} กลับมาเชื่อมต่อ (ขาดการติดต่อไป ~${Math.round(timeDiffMinutes)} นาที)`);
+      await sendNotification(`[กลับมาเชื่อมต่อ] ${deviceName} (ขาดการติดต่อไป ~${Math.round(timeDiffMinutes)} นาที)`);
     } else if (existingDevice.isCharging !== currentIsCharging) {
       eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
       if (currentIsCharging) {
-        await sendNotification(`${deviceName} เริ่มเสียบชาร์จ (แบตเตอรี่: ${currentBattery}%)`);
+        await sendNotification(`[เสียบชาร์จ] ${deviceName}\nแบตเตอรี่: ${currentBattery}%`);
       } else {
-        await sendNotification(`${deviceName} ถอดสายชาร์จ (แบตเตอรี่: ${currentBattery}%)`);
+        await sendNotification(`[ถอดชาร์จ] ${deviceName}\nแบตเตอรี่: ${currentBattery}%`);
       }
-    } else if (currentIsCharging && currentBattery === 100 && existingDevice.batteryLevel < 100) {
-      eventType = 'FULL_CHARGE';
-      const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
-      await sendNotification(`${deviceName} ชาร์จเต็ม 100%`);
+    } else if (currentIsCharging && existingDevice.batteryLevel < currentBattery) {
+      const chargeThresholds = [80, 90, 95, 100];
+      const crossedThreshold = chargeThresholds.find(
+        (t) => currentBattery >= t && existingDevice.batteryLevel < t
+      );
+      if (crossedThreshold !== undefined) {
+        eventType = crossedThreshold === 100 ? 'FULL_CHARGE' : 'NEAR_FULL';
+        const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
+        if (crossedThreshold === 100) {
+          await sendNotification(`[แบตเต็ม 100%] ${deviceName}\nชาร์จเต็มเรียบร้อยแล้ว`);
+        } else {
+          await sendNotification(`[แบตใกล้เต็ม ${crossedThreshold}%] ${deviceName}\nชาร์จถึง: ${currentBattery}% แล้ว`);
+        }
+      } else {
+        eventType = 'LEVEL_UPDATE';
+      }
+    } else if (!currentIsCharging && existingDevice.batteryLevel > currentBattery) {
+      const drainThresholds = [20, 15, 10, 5, 0];
+      const crossedThreshold = drainThresholds.find(
+        (t) => currentBattery <= t && existingDevice.batteryLevel > t
+      );
+      if (crossedThreshold !== undefined) {
+        eventType = crossedThreshold === 0 ? 'BATTERY_EMPTY' : 'LOW_BATTERY';
+        const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
+        if (crossedThreshold === 0) {
+          await sendNotification(`[แบตหมด 0%] ${deviceName}\nอุปกรณ์อาจดับหรือหยุดทำงาน`);
+        } else {
+          await sendNotification(`[แบตเตอรี่ต่ำ] ${deviceName}\nเหลือแบตเตอรี่: ${currentBattery}% (ต่ำกว่า ${crossedThreshold}%)`);
+        }
+      } else {
+        eventType = 'LEVEL_UPDATE';
+      }
     } else if (existingDevice.batteryLevel !== currentBattery) {
       eventType = 'LEVEL_UPDATE';
     }
