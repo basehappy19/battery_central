@@ -1435,10 +1435,10 @@ export default function BatteryDashboard() {
                 รายงานสถานะแบตเตอรี่ ประเมินเวลา และสถิติประจำวันแบบเรียลไทม์
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 pt-1 w-full sm:w-auto">
               <button
                 onClick={handleOpenModal}
-                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-3 sm:py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -1448,20 +1448,20 @@ export default function BatteryDashboard() {
               <button
                 onClick={handleOpenReorderModal}
                 disabled={devices.length <= 1}
-                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm px-5 py-2.5 rounded-2xl border border-slate-300 shadow-sm transition-all hover:shadow cursor-pointer disabled:opacity-50"
+                className="col-span-1 inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm px-3 sm:px-5 py-3 sm:py-2.5 rounded-2xl border border-slate-300 shadow-sm transition-all hover:shadow cursor-pointer disabled:opacity-50"
                 title="จัดเรียงหรือสลับตำแหน่งอุปกรณ์บนหน้าแรก"
               >
-                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                 </svg>
                 <span>จัดเรียงตำแหน่ง</span>
               </button>
               <a
                 href="/logs"
-                className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+                className="col-span-1 inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm px-3 sm:px-5 py-3 sm:py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
                 title="ดูประวัติคำขอ API และบันทึก Log การทำงานของระบบ"
               >
-                <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-slate-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span>ประวัติ API</span>
@@ -1475,10 +1475,10 @@ export default function BatteryDashboard() {
                   setSettingsUnlockError("");
                   fetchSettings();
                 }}
-                className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+                className="col-span-1 inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm px-3 sm:px-5 py-3 sm:py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
                 title="ตั้งค่าระบบครบวงจร (Telegram Bot, ตรรกะแจ้งเตือน, ข้อความบอต, เปลี่ยนรหัสผ่าน)"
               >
-                <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-slate-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -1491,21 +1491,21 @@ export default function BatteryDashboard() {
                   setPassword("");
                   showToast("ออกจากระบบเรียบร้อยแล้ว", "success");
                 }}
-                className="inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3.5 py-2.5 rounded-2xl border border-rose-200 shadow-sm transition-all hover:shadow cursor-pointer ml-1"
+                className="col-span-1 inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs sm:text-sm px-3 sm:px-3.5 py-3 sm:py-2.5 rounded-2xl border border-rose-200 shadow-sm transition-all hover:shadow cursor-pointer"
                 title="ออกจากระบบ"
               >
-                <svg className="w-3.5 h-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-3.5 h-3.5 text-rose-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 <span>ออกจากระบบ</span>
               </button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-end">
+          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-end w-full sm:w-auto mt-2 sm:mt-0">
             <button
               onClick={() => fetchDevices(false)}
               title="คลิกเพื่อรีเฟรชข้อมูลทันที"
-              className="flex items-center gap-2.5 bg-white hover:bg-slate-50 transition-colors px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-sm cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 transition-colors px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-sm cursor-pointer"
             >
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
