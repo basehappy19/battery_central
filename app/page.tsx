@@ -1738,7 +1738,7 @@ export default function BatteryDashboard() {
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
                       }`}
                     >
-                      <span>🤖 Telegram Bot</span>
+                      <span>Telegram Bot</span>
                     </button>
                     <button
                       type="button"
@@ -1749,7 +1749,7 @@ export default function BatteryDashboard() {
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
                       }`}
                     >
-                      <span>⚙️ ตรรกะระบบ</span>
+                      <span>ตรรกะระบบ</span>
                     </button>
                     <button
                       type="button"
@@ -1760,7 +1760,7 @@ export default function BatteryDashboard() {
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
                       }`}
                     >
-                      <span>💬 รูปแบบข้อความ</span>
+                      <span>รูปแบบข้อความ</span>
                     </button>
                     <button
                       type="button"
@@ -1771,7 +1771,7 @@ export default function BatteryDashboard() {
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
                       }`}
                     >
-                      <span>🔐 ความปลอดภัย</span>
+                      <span>ความปลอดภัย</span>
                     </button>
                   </div>
 
@@ -1781,25 +1781,26 @@ export default function BatteryDashboard() {
                     <form onSubmit={handleSaveSettings} className="space-y-6 overflow-y-auto pr-1 flex-1">
                       {settingsTab === 'telegram' && (
                         <div className="space-y-4 animate-fadeIn">
-                          <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 text-xs text-emerald-800 leading-relaxed mb-4">
-                            <p className="font-bold mb-1">📌 คำแนะนำการตั้งค่า Telegram Bot:</p>
-                            1. สร้างบอตผ่าน @BotFather ใน Telegram แล้วคัดลอก <b>Bot Token</b><br />
-                            2. ดึง <b>Chat ID</b> (ID ส่วนตัวหรือกลุ่ม) ผ่าน @userinfobot หรือ API<br />
-                            3. สามารถกดปุ่ม &quot;ทดสอบส่งข้อความ&quot; ด้านล่างเพื่อตรวจสอบความถูกต้องได้ทันที
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                              สถานะการแจ้งเตือน Telegram
-                            </label>
-                            <select
-                              value={settingsData.telegram_enabled || 'true'}
-                              onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_enabled: e.target.value }))}
-                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
+                          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
+                            <div>
+                              <label className="block text-sm font-bold text-slate-800">
+                                สถานะการแจ้งเตือน Telegram
+                              </label>
+                              <p className="text-xs text-slate-500 mt-0.5">เปิดหรือปิดการส่งข้อความแจ้งเตือนทั้งหมดไปยัง Telegram</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSettingsData((prev) => ({ ...prev, telegram_enabled: prev.telegram_enabled === 'false' ? 'true' : 'false' }))}
+                              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                settingsData.telegram_enabled !== 'false' ? 'bg-emerald-600' : 'bg-slate-300'
+                              }`}
                             >
-                              <option value="true">🟢 เปิดใช้งาน (ส่งแจ้งเตือนปกติ)</option>
-                              <option value="false">🔴 ปิดใช้งาน (ไม่ส่งแจ้งเตือน)</option>
-                            </select>
+                              <span
+                                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                  settingsData.telegram_enabled !== 'false' ? 'translate-x-5' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
                           </div>
 
                           <div>
@@ -1852,11 +1853,6 @@ export default function BatteryDashboard() {
 
                       {settingsTab === 'logic' && (
                         <div className="space-y-6 animate-fadeIn">
-                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed">
-                            <p className="font-bold text-slate-800 mb-1">⚙️ การตั้งค่าเงื่อนไขเวลาและระดับแบตเตอรี่:</p>
-                            เมื่ออุปกรณ์อัปเดตสถานะหรือขาดการติดต่อ ระบบจะตรวจสอบเกณฑ์เหล่านี้เพื่อให้แจ้งเตือนได้อย่างแม่นยำตามที่คุณต้องการ
-                          </div>
-
                           <div>
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                               เกณฑ์เวลาขาดการติดต่อ (นาที)
@@ -1875,7 +1871,7 @@ export default function BatteryDashboard() {
 
                           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                              ⚡ เกณฑ์แจ้งเตือนแบตเตอรี่ใกล้เต็ม (%)
+                              เกณฑ์แจ้งเตือนแบตเตอรี่ใกล้เต็ม (%)
                             </label>
                             <p className="text-[11px] text-slate-500">คลิกที่ตัวเลขเพื่อเลือกหรือยกเลิกเกณฑ์ที่ต้องการแจ้งเตือนเมื่อชาร์จถึง</p>
                             
@@ -1918,42 +1914,7 @@ export default function BatteryDashboard() {
                               })()}
                             </div>
 
-                            <div className="pt-2 border-t border-slate-200/60">
-                              <span className="text-[11px] font-bold text-slate-600 mr-2">เพิ่มด่วน:</span>
-                              <div className="inline-flex flex-wrap gap-1.5 mt-1">
-                                {[80, 85, 90, 95, 98, 99, 100].map((preset) => {
-                                  const currentList = (settingsData.alert_near_full_levels || '')
-                                    .split(',')
-                                    .map((s) => parseInt(s.trim(), 10))
-                                    .filter((n) => !isNaN(n));
-                                  const isSelected = currentList.includes(preset);
-                                  return (
-                                    <button
-                                      key={preset}
-                                      type="button"
-                                      onClick={() => {
-                                        let updated;
-                                        if (isSelected) {
-                                          updated = currentList.filter((n) => n !== preset);
-                                        } else {
-                                          updated = [...currentList, preset].sort((a, b) => a - b);
-                                        }
-                                        setSettingsData((prev) => ({ ...prev, alert_near_full_levels: updated.join(', ') }));
-                                      }}
-                                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                        isSelected
-                                          ? 'bg-emerald-600 text-white shadow-2xs'
-                                          : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-300'
-                                      }`}
-                                    >
-                                      {isSelected ? `✓ ${preset}%` : `+ ${preset}%`}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 pt-1">
+                            <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60">
                               <input
                                 type="number"
                                 min="1"
@@ -2007,7 +1968,7 @@ export default function BatteryDashboard() {
 
                           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                              🪫 เกณฑ์แจ้งเตือนแบตเตอรี่ต่ำ (%)
+                              เกณฑ์แจ้งเตือนแบตเตอรี่ต่ำ (%)
                             </label>
                             <p className="text-[11px] text-slate-500">คลิกที่ตัวเลขเพื่อเลือกหรือยกเลิกเกณฑ์ที่ต้องการแจ้งเตือนเมื่อแบตลดถึง</p>
                             
@@ -2050,42 +2011,7 @@ export default function BatteryDashboard() {
                               })()}
                             </div>
 
-                            <div className="pt-2 border-t border-slate-200/60">
-                              <span className="text-[11px] font-bold text-slate-600 mr-2">เพิ่มด่วน:</span>
-                              <div className="inline-flex flex-wrap gap-1.5 mt-1">
-                                {[30, 25, 20, 15, 10, 5, 0].map((preset) => {
-                                  const currentList = (settingsData.alert_low_battery_levels || '')
-                                    .split(',')
-                                    .map((s) => parseInt(s.trim(), 10))
-                                    .filter((n) => !isNaN(n));
-                                  const isSelected = currentList.includes(preset);
-                                  return (
-                                    <button
-                                      key={preset}
-                                      type="button"
-                                      onClick={() => {
-                                        let updated;
-                                        if (isSelected) {
-                                          updated = currentList.filter((n) => n !== preset);
-                                        } else {
-                                          updated = [...currentList, preset].sort((a, b) => b - a);
-                                        }
-                                        setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: updated.join(', ') }));
-                                      }}
-                                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                        isSelected
-                                          ? 'bg-rose-600 text-white shadow-2xs'
-                                          : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-300'
-                                      }`}
-                                    >
-                                      {isSelected ? `✓ ${preset}%` : `+ ${preset}%`}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 pt-1">
+                            <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60">
                               <input
                                 type="number"
                                 min="0"
@@ -2142,7 +2068,7 @@ export default function BatteryDashboard() {
                       {settingsTab === 'templates' && (
                         <div className="space-y-4 animate-fadeIn">
                           <div className="bg-sky-50 p-3.5 rounded-2xl border border-sky-100 text-xs text-sky-800 leading-relaxed">
-                            <p className="font-bold mb-1">💡 คำแนะนำตัวแปรที่ใช้ได้ในข้อความ (Variables):</p>
+                            <p className="font-bold mb-1">คำแนะนำตัวแปรที่ใช้ได้ในข้อความ (Variables):</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-1.5">
                               <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{device}"}</code> = ชื่ออุปกรณ์</div>
                               <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{battery}"}</code> = ระดับแบตเตอรี่ (%)</div>
@@ -2153,85 +2079,251 @@ export default function BatteryDashboard() {
                               <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{gained}"}</code> = แบตที่เพิ่มขึ้น (+X%)</div>
                               <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{time}"}</code> = เวลา (เฉพาะชั่วโมง:นาที)</div>
                             </div>
-                            <p className="mt-2 text-[11px] text-slate-500 font-bold">* คุณสามารถปรับแต่งข้อความได้ทั้งกล่อง ทุกบรรทัด รวมถึงแท็ก HTML เช่น &lt;b&gt;, &lt;code&gt;, &lt;i&gt; ได้อย่างอิสระ 100%</p>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                1. เริ่มเสียบสายชาร์จ
-                              </label>
+                            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                  1. เริ่มเสียบสายชาร์จ
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-500 font-medium">
+                                    {settingsData.enable_msg_plugged_in !== 'false' ? 'เปิดแจ้งเตือน' : 'ปิดแจ้งเตือน'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSettingsData((prev) => ({ ...prev, enable_msg_plugged_in: prev.enable_msg_plugged_in === 'false' ? 'true' : 'false' }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                      settingsData.enable_msg_plugged_in !== 'false' ? 'bg-emerald-600' : 'bg-slate-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        settingsData.enable_msg_plugged_in !== 'false' ? 'translate-x-4' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
-                                rows={8}
+                                rows={6}
+                                disabled={settingsData.enable_msg_plugged_in === 'false'}
                                 value={settingsData.msg_template_plugged_in || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_plugged_in: e.target.value }))}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                  settingsData.enable_msg_plugged_in === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
+                                }`}
                               />
                             </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                2. ถอดสายชาร์จ
-                              </label>
+
+                            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                  2. ถอดสายชาร์จ
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-500 font-medium">
+                                    {settingsData.enable_msg_unplugged !== 'false' ? 'เปิดแจ้งเตือน' : 'ปิดแจ้งเตือน'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSettingsData((prev) => ({ ...prev, enable_msg_unplugged: prev.enable_msg_unplugged === 'false' ? 'true' : 'false' }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                      settingsData.enable_msg_unplugged !== 'false' ? 'bg-emerald-600' : 'bg-slate-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        settingsData.enable_msg_unplugged !== 'false' ? 'translate-x-4' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
-                                rows={8}
+                                rows={6}
+                                disabled={settingsData.enable_msg_unplugged === 'false'}
                                 value={settingsData.msg_template_unplugged || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_unplugged: e.target.value }))}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                  settingsData.enable_msg_unplugged === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
+                                }`}
                               />
                             </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                3. ชาร์จเต็ม 100%
-                              </label>
+
+                            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                  3. ชาร์จเต็ม 100%
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-500 font-medium">
+                                    {settingsData.enable_msg_full_charge !== 'false' ? 'เปิดแจ้งเตือน' : 'ปิดแจ้งเตือน'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSettingsData((prev) => ({ ...prev, enable_msg_full_charge: prev.enable_msg_full_charge === 'false' ? 'true' : 'false' }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                      settingsData.enable_msg_full_charge !== 'false' ? 'bg-emerald-600' : 'bg-slate-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        settingsData.enable_msg_full_charge !== 'false' ? 'translate-x-4' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
-                                rows={8}
+                                rows={6}
+                                disabled={settingsData.enable_msg_full_charge === 'false'}
                                 value={settingsData.msg_template_full_charge || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_full_charge: e.target.value }))}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                  settingsData.enable_msg_full_charge === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
+                                }`}
                               />
                             </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                4. แบตเตอรี่ใกล้เต็ม (80-95%)
-                              </label>
+
+                            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                  4. แบตเตอรี่ใกล้เต็ม (80-95%)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-500 font-medium">
+                                    {settingsData.enable_msg_near_full !== 'false' ? 'เปิดแจ้งเตือน' : 'ปิดแจ้งเตือน'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSettingsData((prev) => ({ ...prev, enable_msg_near_full: prev.enable_msg_near_full === 'false' ? 'true' : 'false' }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                      settingsData.enable_msg_near_full !== 'false' ? 'bg-emerald-600' : 'bg-slate-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        settingsData.enable_msg_near_full !== 'false' ? 'translate-x-4' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
-                                rows={8}
+                                rows={6}
+                                disabled={settingsData.enable_msg_near_full === 'false'}
                                 value={settingsData.msg_template_near_full || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_near_full: e.target.value }))}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                  settingsData.enable_msg_near_full === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
+                                }`}
                               />
                             </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                5. แบตเตอรี่ต่ำ (5-20%)
-                              </label>
+
+                            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                  5. แบตเตอรี่ต่ำ (5-20%)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-500 font-medium">
+                                    {settingsData.enable_msg_low_battery !== 'false' ? 'เปิดแจ้งเตือน' : 'ปิดแจ้งเตือน'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSettingsData((prev) => ({ ...prev, enable_msg_low_battery: prev.enable_msg_low_battery === 'false' ? 'true' : 'false' }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                      settingsData.enable_msg_low_battery !== 'false' ? 'bg-emerald-600' : 'bg-slate-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        settingsData.enable_msg_low_battery !== 'false' ? 'translate-x-4' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
-                                rows={8}
+                                rows={6}
+                                disabled={settingsData.enable_msg_low_battery === 'false'}
                                 value={settingsData.msg_template_low_battery || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_low_battery: e.target.value }))}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                  settingsData.enable_msg_low_battery === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
+                                }`}
                               />
                             </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                6. แบตเตอรี่หมดวิกฤต (0%)
-                              </label>
+
+                            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                  6. แบตเตอรี่หมดวิกฤต (0%)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-500 font-medium">
+                                    {settingsData.enable_msg_battery_empty !== 'false' ? 'เปิดแจ้งเตือน' : 'ปิดแจ้งเตือน'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSettingsData((prev) => ({ ...prev, enable_msg_battery_empty: prev.enable_msg_battery_empty === 'false' ? 'true' : 'false' }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                      settingsData.enable_msg_battery_empty !== 'false' ? 'bg-emerald-600' : 'bg-slate-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        settingsData.enable_msg_battery_empty !== 'false' ? 'translate-x-4' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
-                                rows={8}
+                                rows={6}
+                                disabled={settingsData.enable_msg_battery_empty === 'false'}
                                 value={settingsData.msg_template_battery_empty || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_battery_empty: e.target.value }))}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                  settingsData.enable_msg_battery_empty === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
+                                }`}
                               />
                             </div>
-                            <div className="md:col-span-2">
-                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                7. กลับมาเชื่อมต่อระบบ (หลังขาดการติดต่อ)
-                              </label>
+
+                            <div className="md:col-span-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                  7. กลับมาเชื่อมต่อระบบ (หลังขาดการติดต่อ)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-500 font-medium">
+                                    {settingsData.enable_msg_reconnected !== 'false' ? 'เปิดแจ้งเตือน' : 'ปิดแจ้งเตือน'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSettingsData((prev) => ({ ...prev, enable_msg_reconnected: prev.enable_msg_reconnected === 'false' ? 'true' : 'false' }))}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                      settingsData.enable_msg_reconnected !== 'false' ? 'bg-emerald-600' : 'bg-slate-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        settingsData.enable_msg_reconnected !== 'false' ? 'translate-x-4' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
-                                rows={8}
+                                rows={6}
+                                disabled={settingsData.enable_msg_reconnected === 'false'}
                                 value={settingsData.msg_template_reconnected || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_reconnected: e.target.value }))}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                  settingsData.enable_msg_reconnected === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
+                                }`}
                               />
                             </div>
                           </div>
@@ -2309,7 +2401,7 @@ export default function BatteryDashboard() {
                           {/* ส่วน API Secret Key */}
                           <div className="space-y-3">
                             <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200/80 text-xs text-amber-900 leading-relaxed">
-                              <p className="font-bold mb-1">⚠️ คำเตือนความปลอดภัย:</p>
+                              <p className="font-bold mb-1">คำเตือนความปลอดภัย:</p>
                               หากเปลี่ยน <b>API Secret Key</b> อุปกรณ์ทั้งหมดที่เชื่อมต่ออยู่ (MacroDroid / Tasker) ต้องอัปเดตรหัสคีย์ใหม่ในสคริปต์ มิฉะนั้นจะไม่สามารถส่งข้อมูลเข้ามาได้
                             </div>
 

@@ -354,7 +354,7 @@ export async function POST(request: Request) {
         datetime: nowDateTimeStr,
         duration: durText,
       });
-      await sendNotification(msg);
+      if (sysSettings.enable_msg_reconnected !== 'false') await sendNotification(msg);
     } else if (existingDevice.isCharging !== currentIsCharging) {
       eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
@@ -366,7 +366,7 @@ export async function POST(request: Request) {
           date: nowDateStr,
           datetime: nowDateTimeStr,
         });
-        await sendNotification(msg);
+        if (sysSettings.enable_msg_plugged_in !== 'false') await sendNotification(msg);
       } else {
         const summary = getChargingSummary(currentBattery, now, existingDevice.logs || []);
         const msg = formatTemplateMessage(sysSettings.msg_template_unplugged, {
@@ -380,7 +380,7 @@ export async function POST(request: Request) {
           gained: summary ? summary.gainedStr : '-',
           duration: summary ? summary.durationStr : '-',
         });
-        await sendNotification(msg);
+        if (sysSettings.enable_msg_unplugged !== 'false') await sendNotification(msg);
       }
     } else if (currentIsCharging && existingDevice.batteryLevel < currentBattery) {
       const chargeThresholds = [...nearFullLevels, 100].sort((a, b) => a - b);
@@ -403,7 +403,7 @@ export async function POST(request: Request) {
             gained: summary ? summary.gainedStr : '-',
             duration: summary ? summary.durationStr : '-',
           });
-          await sendNotification(msg);
+          if (sysSettings.enable_msg_full_charge !== 'false') await sendNotification(msg);
         } else {
           const msg = formatTemplateMessage(sysSettings.msg_template_near_full, {
             device: deviceName,
@@ -412,7 +412,7 @@ export async function POST(request: Request) {
             date: nowDateStr,
             datetime: nowDateTimeStr,
           });
-          await sendNotification(msg);
+          if (sysSettings.enable_msg_near_full !== 'false') await sendNotification(msg);
         }
       } else {
         eventType = 'LEVEL_UPDATE';
@@ -433,7 +433,7 @@ export async function POST(request: Request) {
             date: nowDateStr,
             datetime: nowDateTimeStr,
           });
-          await sendNotification(msg);
+          if (sysSettings.enable_msg_battery_empty !== 'false') await sendNotification(msg);
         } else {
           const msg = formatTemplateMessage(sysSettings.msg_template_low_battery, {
             device: deviceName,
@@ -442,7 +442,7 @@ export async function POST(request: Request) {
             date: nowDateStr,
             datetime: nowDateTimeStr,
           });
-          await sendNotification(msg);
+          if (sysSettings.enable_msg_low_battery !== 'false') await sendNotification(msg);
         }
       } else {
         eventType = 'LEVEL_UPDATE';

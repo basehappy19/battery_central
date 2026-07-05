@@ -14,6 +14,13 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   msg_template_low_battery: '<b>[แจ้งเตือน: แบตเตอรี่ต่ำ]</b>\n--------------------------------\n<b>อุปกรณ์:</b> <code>{device}</code>\n<b>สถานะ:</b> ลดต่ำกว่าจุดแจ้งเตือน ({battery}%)\n<b>เหลือแบตเตอรี่:</b> <b>{battery}%</b>\n--------------------------------\n<i>เวลา: {datetime}</i>',
   msg_template_battery_empty: '<b>[แจ้งเตือน: แบตเตอรี่หมดวิกฤต]</b>\n--------------------------------\n<b>อุปกรณ์:</b> <code>{device}</code>\n<b>สถานะ:</b> แบตเตอรี่เหลือ 0%\n<b>คำแนะนำ:</b> <b>อุปกรณ์อาจดับหรือหยุดทำงาน</b>\n--------------------------------\n<i>เวลา: {datetime}</i>',
   msg_template_reconnected: '<b>[แจ้งเตือน: กลับมาเชื่อมต่อระบบ]</b>\n--------------------------------\n<b>อุปกรณ์:</b> <code>{device}</code>\n<b>สถานะ:</b> กลับมาออนไลน์\n<b>ขาดการติดต่อไป:</b> <b>ประมาณ {duration}</b>\n--------------------------------\n<i>เวลา: {datetime}</i>',
+  enable_msg_plugged_in: 'true',
+  enable_msg_unplugged: 'true',
+  enable_msg_full_charge: 'true',
+  enable_msg_near_full: 'true',
+  enable_msg_low_battery: 'true',
+  enable_msg_battery_empty: 'true',
+  enable_msg_reconnected: 'true',
   api_secret_key: 'secret_batt_2026',
   dashboard_password: 'battery123',
 };
