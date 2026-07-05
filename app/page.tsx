@@ -217,20 +217,6 @@ const getPlatformStyle = (platform: string, isOffline?: boolean): { bg: string; 
   };
 };
 
-const CustomBatteryDot = (props: any) => {
-  const { cx, cy, payload } = props;
-  if (cx === undefined || cy === undefined || !payload) return null;
-  if (payload.isCharging) {
-    return (
-      <g key={`dot-${cx}-${cy}`}>
-        <circle cx={cx} cy={cy} r={5} fill="#10b981" stroke="#ffffff" strokeWidth={2} className="shadow-sm" />
-        <circle cx={cx} cy={cy} r={9} fill="#10b981" fillOpacity={0.35} className="animate-pulse" />
-      </g>
-    );
-  }
-  return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={3} fill="#3b82f6" stroke="#ffffff" strokeWidth={1.5} />;
-};
-
 const CustomGraphTooltip = ({ active, payload }: any) => {
   if (!active || !payload || !payload.length) return null;
   const pt = payload[0].payload;
@@ -285,6 +271,7 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
     const formatted = data.map((pt, idx) => {
       const d = new Date(pt.time);
       const prevPt = idx > 0 ? data[idx - 1] : null;
+      const nextPt = idx < data.length - 1 ? data[idx + 1] : null;
       const diff = prevPt ? pt.level - prevPt.level : 0;
       let eventType: string | null = null;
       if (prevPt && pt.isCharging && !prevPt.isCharging) {
@@ -295,11 +282,31 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
         eventType = 'FULL';
       }
 
+      const isCharging = pt.isCharging;
+      const isNextCharging = nextPt ? nextPt.isCharging : isCharging;
+
+      let dischargingLevel: number | null = null;
+      let chargingLevel: number | null = null;
+
+      if (isCharging) {
+        chargingLevel = pt.level;
+        if (!isNextCharging) {
+          dischargingLevel = pt.level;
+        }
+      } else {
+        dischargingLevel = pt.level;
+        if (isNextCharging) {
+          chargingLevel = pt.level;
+        }
+      }
+
       return {
         time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
         rawTime: pt.time,
         level: pt.level,
         isCharging: pt.isCharging,
+        dischargingLevel,
+        chargingLevel,
         diff,
         eventType,
       };
@@ -348,9 +355,13 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
             <defs>
-              <linearGradient id="colorLevel" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="colorDischarge" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+              </linearGradient>
+              <linearGradient id="colorCharge" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
@@ -422,13 +433,23 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
             <Tooltip content={<CustomGraphTooltip />} />
             <Area
               type="monotone"
-              dataKey="level"
+              dataKey="dischargingLevel"
               stroke="#3b82f6"
               strokeWidth={2.5}
               fillOpacity={1}
-              fill="url(#colorLevel)"
-              dot={<CustomBatteryDot />}
+              fill="url(#colorDischarge)"
+              dot={false}
               activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="chargingLevel"
+              stroke="#10b981"
+              strokeWidth={2.5}
+              fillOpacity={1}
+              fill="url(#colorCharge)"
+              dot={false}
+              activeDot={{ r: 6, fill: "#059669", stroke: "#ffffff", strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>
