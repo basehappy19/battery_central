@@ -719,9 +719,7 @@ export default function BatteryDashboard() {
   const [isClosingDeleteModal, setIsClosingDeleteModal] = useState(false);
   const [deletingDevice, setDeletingDevice] = useState(false);
 
-  // Change Password Modal State
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState<boolean>(false);
-  const [isClosingChangePasswordModal, setIsClosingChangePasswordModal] = useState<boolean>(false);
+  // Change Password State
   const [oldPasswordInput, setOldPasswordInput] = useState<string>("");
   const [newPasswordInput, setNewPasswordInput] = useState<string>("");
   const [confirmPasswordInput, setConfirmPasswordInput] = useState<string>("");
@@ -730,6 +728,12 @@ export default function BatteryDashboard() {
   // Settings Modal State
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [isClosingSettingsModal, setIsClosingSettingsModal] = useState<boolean>(false);
+  const [isSettingsUnlocked, setIsSettingsUnlocked] = useState<boolean>(false);
+  const [settingsUnlockPassword, setSettingsUnlockPassword] = useState<string>("");
+  const [unlockingSettings, setUnlockingSettings] = useState<boolean>(false);
+  const [settingsUnlockError, setSettingsUnlockError] = useState<string>("");
+  const [customNearFullInput, setCustomNearFullInput] = useState<string>("");
+  const [customLowBattInput, setCustomLowBattInput] = useState<string>("");
   const [settingsTab, setSettingsTab] = useState<'telegram' | 'logic' | 'templates' | 'security'>('telegram');
   const [settingsData, setSettingsData] = useState<Record<string, string>>({});
   const [loadingSettings, setLoadingSettings] = useState<boolean>(false);
@@ -1017,27 +1021,8 @@ export default function BatteryDashboard() {
     }
   };
 
-  const handleOpenChangePasswordModal = () => {
-    setOldPasswordInput("");
-    setNewPasswordInput("");
-    setConfirmPasswordInput("");
-    setShowChangePasswordModal(true);
-    setIsClosingChangePasswordModal(false);
-  };
-
-  const handleCloseChangePasswordModal = () => {
-    setIsClosingChangePasswordModal(true);
-    setTimeout(() => {
-      setShowChangePasswordModal(false);
-      setIsClosingChangePasswordModal(false);
-      setOldPasswordInput("");
-      setNewPasswordInput("");
-      setConfirmPasswordInput("");
-    }, 150);
-  };
-
-  const handleConfirmChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmChangePassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!oldPasswordInput || !newPasswordInput || !confirmPasswordInput) {
       showToast("กรุณากรอกข้อมูลให้ครบทุกช่อง", "error");
       return;
@@ -1065,7 +1050,10 @@ export default function BatteryDashboard() {
       const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
       if (res.ok && data.success) {
         showToast("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่", "success");
-        handleCloseChangePasswordModal();
+        handleCloseSettingsModal();
+        setOldPasswordInput("");
+        setNewPasswordInput("");
+        setConfirmPasswordInput("");
         setTimeout(() => {
           localStorage.removeItem("dashboard_auth");
           setAuthenticated(false);
@@ -1213,6 +1201,12 @@ export default function BatteryDashboard() {
     setTimeout(() => {
       setShowSettingsModal(false);
       setIsClosingSettingsModal(false);
+      setIsSettingsUnlocked(false);
+      setSettingsUnlockPassword("");
+      setSettingsUnlockError("");
+      setOldPasswordInput("");
+      setNewPasswordInput("");
+      setConfirmPasswordInput("");
     }, 200);
   };
 
@@ -1329,19 +1323,16 @@ export default function BatteryDashboard() {
                 <span>เพิ่มอุปกรณ์ใหม่</span>
               </button>
               <button
-                onClick={handleOpenChangePasswordModal}
-                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm px-5 py-2.5 rounded-2xl border border-slate-300 shadow-sm transition-all hover:shadow cursor-pointer"
-                title="เปลี่ยนรหัสผ่านเข้าสู่ระบบแดชบอร์ด"
-              >
-                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-                <span>เปลี่ยนรหัสผ่าน</span>
-              </button>
-              <button
-                onClick={() => { setShowSettingsModal(true); setIsClosingSettingsModal(false); fetchSettings(); }}
+                onClick={() => {
+                  setShowSettingsModal(true);
+                  setIsClosingSettingsModal(false);
+                  setIsSettingsUnlocked(false);
+                  setSettingsUnlockPassword("");
+                  setSettingsUnlockError("");
+                  fetchSettings();
+                }}
                 className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
-                title="ตั้งค่าระบบครบวงจร (Telegram Bot, ตรรกะแจ้งเตือน, ข้อความบอต)"
+                title="ตั้งค่าระบบครบวงจร (Telegram Bot, ตรรกะแจ้งเตือน, ข้อความบอต, เปลี่ยนรหัสผ่าน)"
               >
                 <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -1623,99 +1614,6 @@ export default function BatteryDashboard() {
           </div>
         )}
 
-        {showChangePasswordModal && (
-          <div
-            onClick={handleCloseChangePasswordModal}
-            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
-              isClosingChangePasswordModal ? "animate-fade-out" : "animate-fade-in"
-            }`}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 shadow-2xl relative my-auto ${
-                isClosingChangePasswordModal ? "animate-modal-out" : "animate-modal-in"
-              }`}
-            >
-              <div className="flex items-center gap-3.5 mb-6 pb-4 border-b border-slate-100">
-                <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center border border-amber-200 shrink-0">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">เปลี่ยนรหัสผ่านแดชบอร์ด</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">กรอกรหัสเดิมและยืนยันรหัสใหม่ 2 ครั้ง</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleConfirmChangePassword} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    รหัสผ่านเดิม <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={oldPasswordInput}
-                    onChange={(e) => setOldPasswordInput(e.target.value)}
-                    placeholder="ระบุรหัสผ่านปัจจุบัน"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    รหัสผ่านใหม่ <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={newPasswordInput}
-                    onChange={(e) => setNewPasswordInput(e.target.value)}
-                    placeholder="ระบุรหัสผ่านใหม่ (อย่างน้อย 4 ตัวอักษร)"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    ยืนยันรหัสผ่านใหม่ <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={confirmPasswordInput}
-                    onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                    placeholder="พิมพ์รหัสผ่านใหม่อีกครั้งเพื่อยืนยัน"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
-                  />
-                </div>
-
-                <div className="pt-3 flex items-center gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={handleCloseChangePasswordModal}
-                    disabled={changingPassword}
-                    className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    ยกเลิก
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={changingPassword || !oldPasswordInput || !newPasswordInput || !confirmPasswordInput}
-                    className="w-1/2 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                  >
-                    {changingPassword ? (
-                      <span>กำลังบันทึก...</span>
-                    ) : (
-                      <span>บันทึกและออกจากระบบ</span>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
         {showSettingsModal && (
           <div
@@ -1752,330 +1650,714 @@ export default function BatteryDashboard() {
                 </div>
               </div>
 
-              {/* Tabs */}
-              <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-100 pb-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setSettingsTab('telegram')}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                    settingsTab === 'telegram'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
-                  }`}
-                >
-                  <span>🤖 Telegram Bot</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSettingsTab('logic')}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                    settingsTab === 'logic'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
-                  }`}
-                >
-                  <span>⚙️ ตรรกะระบบ</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSettingsTab('templates')}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                    settingsTab === 'templates'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
-                  }`}
-                >
-                  <span>💬 รูปแบบข้อความ</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSettingsTab('security')}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                    settingsTab === 'security'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
-                  }`}
-                >
-                  <span>🔐 ความปลอดภัย</span>
-                </button>
-              </div>
+              {!isSettingsUnlocked ? (
+                <div className="py-12 px-4 text-center max-w-sm mx-auto animate-fadeIn flex-1 flex flex-col justify-center">
+                  <div className="w-16 h-16 bg-slate-900 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">ยืนยันรหัสผ่านเพื่อเข้าสู่การตั้งค่า</h3>
+                  <p className="text-xs text-slate-500 mb-6">เพื่อความปลอดภัย กรุณากรอกรหัสผ่านแดชบอร์ดของคุณก่อนเข้าปรับแต่งระบบ</p>
 
-              {loadingSettings ? (
-                <div className="py-20 text-center text-slate-400 font-medium">กำลังโหลดข้อมูลตั้งค่า...</div>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!settingsUnlockPassword.trim()) {
+                        setSettingsUnlockError("กรุณากรอกรหัสผ่าน");
+                        return;
+                      }
+                      setUnlockingSettings(true);
+                      setSettingsUnlockError("");
+                      try {
+                        const res = await fetch("/api/auth/verify", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ password: settingsUnlockPassword }),
+                        });
+                        const data = (await res.json()) as { success?: boolean };
+                        if (res.ok && data.success) {
+                          setIsSettingsUnlocked(true);
+                          setSettingsUnlockError("");
+                          setSettingsUnlockPassword("");
+                        } else {
+                          setSettingsUnlockError("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
+                        }
+                      } catch (err) {
+                        setSettingsUnlockError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+                      } finally {
+                        setUnlockingSettings(false);
+                      }
+                    }}
+                    className="space-y-4"
+                  >
+                    <div>
+                      <input
+                        type="password"
+                        value={settingsUnlockPassword}
+                        onChange={(e) => {
+                          setSettingsUnlockPassword(e.target.value);
+                          setSettingsUnlockError("");
+                        }}
+                        placeholder="กรอกรหัสผ่านแดชบอร์ด..."
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-center text-sm bg-slate-50 focus:bg-white transition-all shadow-inner font-semibold"
+                        autoFocus
+                      />
+                      {settingsUnlockError && (
+                        <p className="text-rose-500 text-xs font-bold mt-2 animate-bounce">{settingsUnlockError}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleCloseSettingsModal}
+                        className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+                      >
+                        ยกเลิก
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={unlockingSettings}
+                        className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {unlockingSettings ? <span>กำลังตรวจสอบ...</span> : <span>ปลดล็อกการตั้งค่า</span>}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               ) : (
-                <form onSubmit={handleSaveSettings} className="space-y-6 overflow-y-auto pr-1 flex-1">
-                  {settingsTab === 'telegram' && (
-                    <div className="space-y-4 animate-fadeIn">
-                      <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 text-xs text-emerald-800 leading-relaxed mb-4">
-                        <p className="font-bold mb-1">📌 คำแนะนำการตั้งค่า Telegram Bot:</p>
-                        1. สร้างบอตผ่าน @BotFather ใน Telegram แล้วคัดลอก <b>Bot Token</b><br />
-                        2. ดึง <b>Chat ID</b> (ID ส่วนตัวหรือกลุ่ม) ผ่าน @userinfobot หรือ API<br />
-                        3. สามารถกดปุ่ม &quot;ทดสอบส่งข้อความ&quot; ด้านล่างเพื่อตรวจสอบความถูกต้องได้ทันที
-                      </div>
+                <>
+                  {/* Tabs */}
+                  <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-100 pb-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setSettingsTab('telegram')}
+                      className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                        settingsTab === 'telegram'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                      }`}
+                    >
+                      <span>🤖 Telegram Bot</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsTab('logic')}
+                      className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                        settingsTab === 'logic'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                      }`}
+                    >
+                      <span>⚙️ ตรรกะระบบ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsTab('templates')}
+                      className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                        settingsTab === 'templates'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                      }`}
+                    >
+                      <span>💬 รูปแบบข้อความ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsTab('security')}
+                      className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                        settingsTab === 'security'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                      }`}
+                    >
+                      <span>🔐 ความปลอดภัย</span>
+                    </button>
+                  </div>
 
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                          สถานะการแจ้งเตือน Telegram
-                        </label>
-                        <select
-                          value={settingsData.telegram_enabled || 'true'}
-                          onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_enabled: e.target.value }))}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
-                        >
-                          <option value="true">🟢 เปิดใช้งาน (ส่งแจ้งเตือนปกติ)</option>
-                          <option value="false">🔴 ปิดใช้งาน (ไม่ส่งแจ้งเตือน)</option>
-                        </select>
-                      </div>
+                  {loadingSettings ? (
+                    <div className="py-20 text-center text-slate-400 font-medium">กำลังโหลดข้อมูลตั้งค่า...</div>
+                  ) : (
+                    <form onSubmit={handleSaveSettings} className="space-y-6 overflow-y-auto pr-1 flex-1">
+                      {settingsTab === 'telegram' && (
+                        <div className="space-y-4 animate-fadeIn">
+                          <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 text-xs text-emerald-800 leading-relaxed mb-4">
+                            <p className="font-bold mb-1">📌 คำแนะนำการตั้งค่า Telegram Bot:</p>
+                            1. สร้างบอตผ่าน @BotFather ใน Telegram แล้วคัดลอก <b>Bot Token</b><br />
+                            2. ดึง <b>Chat ID</b> (ID ส่วนตัวหรือกลุ่ม) ผ่าน @userinfobot หรือ API<br />
+                            3. สามารถกดปุ่ม &quot;ทดสอบส่งข้อความ&quot; ด้านล่างเพื่อตรวจสอบความถูกต้องได้ทันที
+                          </div>
 
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                          Telegram Bot Token
-                        </label>
-                        <input
-                          type="text"
-                          value={settingsData.telegram_bot_token || ''}
-                          onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_bot_token: e.target.value }))}
-                          placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
-                        />
-                      </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                              สถานะการแจ้งเตือน Telegram
+                            </label>
+                            <select
+                              value={settingsData.telegram_enabled || 'true'}
+                              onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_enabled: e.target.value }))}
+                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
+                            >
+                              <option value="true">🟢 เปิดใช้งาน (ส่งแจ้งเตือนปกติ)</option>
+                              <option value="false">🔴 ปิดใช้งาน (ไม่ส่งแจ้งเตือน)</option>
+                            </select>
+                          </div>
 
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                          Telegram Chat ID
-                        </label>
-                        <input
-                          type="text"
-                          value={settingsData.telegram_chat_id || ''}
-                          onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_chat_id: e.target.value }))}
-                          placeholder="เช่น 12345678 หรือ -100123456789"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
-                        />
-                      </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                              Telegram Bot Token
+                            </label>
+                            <input
+                              type="text"
+                              value={settingsData.telegram_bot_token || ''}
+                              onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_bot_token: e.target.value }))}
+                              placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                            />
+                          </div>
 
-                      <div className="pt-2">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                              Telegram Chat ID
+                            </label>
+                            <input
+                              type="text"
+                              value={settingsData.telegram_chat_id || ''}
+                              onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_chat_id: e.target.value }))}
+                              placeholder="เช่น 12345678 หรือ -100123456789"
+                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                            />
+                          </div>
+
+                          <div className="pt-2">
+                            <button
+                              type="button"
+                              onClick={handleTestTelegram}
+                              disabled={testingTelegram}
+                              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer border border-slate-300 shadow-2xs inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                              {testingTelegram ? (
+                                <span>กำลังส่งข้อความทดสอบ...</span>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                  </svg>
+                                  <span>ทดสอบส่งข้อความแจ้งเตือน (Test Notification)</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {settingsTab === 'logic' && (
+                        <div className="space-y-6 animate-fadeIn">
+                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed">
+                            <p className="font-bold text-slate-800 mb-1">⚙️ การตั้งค่าเงื่อนไขเวลาและระดับแบตเตอรี่:</p>
+                            เมื่ออุปกรณ์อัปเดตสถานะหรือขาดการติดต่อ ระบบจะตรวจสอบเกณฑ์เหล่านี้เพื่อให้แจ้งเตือนได้อย่างแม่นยำตามที่คุณต้องการ
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                              เกณฑ์เวลาขาดการติดต่อ (นาที)
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="1440"
+                              value={settingsData.offline_threshold_minutes || '60'}
+                              onChange={(e) => setSettingsData((prev) => ({ ...prev, offline_threshold_minutes: e.target.value }))}
+                              placeholder="60"
+                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                            />
+                            <p className="text-[11px] text-slate-400 mt-1">หากไม่มีข้อมูลส่งมานานกว่ากำหนด ระบบจะแสดงสถานะ &quot;ขาดการติดต่อ&quot; และแจ้งเตือนเมื่อกลับมาออนไลน์</p>
+                          </div>
+
+                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                              ⚡ เกณฑ์แจ้งเตือนแบตเตอรี่ใกล้เต็ม (%)
+                            </label>
+                            <p className="text-[11px] text-slate-500">คลิกที่ตัวเลขเพื่อเลือกหรือยกเลิกเกณฑ์ที่ต้องการแจ้งเตือนเมื่อชาร์จถึง</p>
+                            
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {(() => {
+                                const currentList = (settingsData.alert_near_full_levels || '')
+                                  .split(',')
+                                  .map((s) => parseInt(s.trim(), 10))
+                                  .filter((n) => !isNaN(n) && n >= 1 && n <= 100)
+                                  .sort((a, b) => a - b);
+
+                                return (
+                                  <>
+                                    {currentList.length === 0 && (
+                                      <span className="text-xs text-slate-400 italic py-1">ยังไม่ได้เลือกเกณฑ์แจ้งเตือน</span>
+                                    )}
+                                    {currentList.map((num) => (
+                                      <span
+                                        key={num}
+                                        className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 font-bold text-xs px-3 py-1.5 rounded-xl border border-emerald-300 shadow-2xs"
+                                      >
+                                        <span>{num}%</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = currentList.filter((n) => n !== num);
+                                            setSettingsData((prev) => ({ ...prev, alert_near_full_levels: updated.join(', ') }));
+                                          }}
+                                          className="hover:bg-emerald-200 text-emerald-700 rounded-full p-0.5 transition-colors cursor-pointer"
+                                          title="ลบเกณฑ์นี้"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                          </svg>
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </>
+                                );
+                              })()}
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-200/60">
+                              <span className="text-[11px] font-bold text-slate-600 mr-2">เพิ่มด่วน:</span>
+                              <div className="inline-flex flex-wrap gap-1.5 mt-1">
+                                {[80, 85, 90, 95, 98, 99, 100].map((preset) => {
+                                  const currentList = (settingsData.alert_near_full_levels || '')
+                                    .split(',')
+                                    .map((s) => parseInt(s.trim(), 10))
+                                    .filter((n) => !isNaN(n));
+                                  const isSelected = currentList.includes(preset);
+                                  return (
+                                    <button
+                                      key={preset}
+                                      type="button"
+                                      onClick={() => {
+                                        let updated;
+                                        if (isSelected) {
+                                          updated = currentList.filter((n) => n !== preset);
+                                        } else {
+                                          updated = [...currentList, preset].sort((a, b) => a - b);
+                                        }
+                                        setSettingsData((prev) => ({ ...prev, alert_near_full_levels: updated.join(', ') }));
+                                      }}
+                                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                        isSelected
+                                          ? 'bg-emerald-600 text-white shadow-2xs'
+                                          : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-300'
+                                      }`}
+                                    >
+                                      {isSelected ? `✓ ${preset}%` : `+ ${preset}%`}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1">
+                              <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                placeholder="ระบุเลขเอง (1-100)"
+                                value={customNearFullInput}
+                                onChange={(e) => setCustomNearFullInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const val = parseInt(customNearFullInput, 10);
+                                    if (!isNaN(val) && val >= 1 && val <= 100) {
+                                      const currentList = (settingsData.alert_near_full_levels || '')
+                                        .split(',')
+                                        .map((s) => parseInt(s.trim(), 10))
+                                        .filter((n) => !isNaN(n));
+                                      if (!currentList.includes(val)) {
+                                        const updated = [...currentList, val].sort((a, b) => a - b);
+                                        setSettingsData((prev) => ({ ...prev, alert_near_full_levels: updated.join(', ') }));
+                                      }
+                                      setCustomNearFullInput("");
+                                    }
+                                  }
+                                }}
+                                className="w-36 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-mono bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const val = parseInt(customNearFullInput, 10);
+                                  if (isNaN(val) || val < 1 || val > 100) {
+                                    showToast("กรุณาระบุตัวเลขระหว่าง 1 - 100", "error");
+                                    return;
+                                  }
+                                  const currentList = (settingsData.alert_near_full_levels || '')
+                                    .split(',')
+                                    .map((s) => parseInt(s.trim(), 10))
+                                    .filter((n) => !isNaN(n));
+                                  if (!currentList.includes(val)) {
+                                    const updated = [...currentList, val].sort((a, b) => a - b);
+                                    setSettingsData((prev) => ({ ...prev, alert_near_full_levels: updated.join(', ') }));
+                                  }
+                                  setCustomNearFullInput("");
+                                }}
+                                className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+                              >
+                                + เพิ่มเกณฑ์
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                              🪫 เกณฑ์แจ้งเตือนแบตเตอรี่ต่ำ (%)
+                            </label>
+                            <p className="text-[11px] text-slate-500">คลิกที่ตัวเลขเพื่อเลือกหรือยกเลิกเกณฑ์ที่ต้องการแจ้งเตือนเมื่อแบตลดถึง</p>
+                            
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {(() => {
+                                const currentList = (settingsData.alert_low_battery_levels || '')
+                                  .split(',')
+                                  .map((s) => parseInt(s.trim(), 10))
+                                  .filter((n) => !isNaN(n) && n >= 0 && n <= 100)
+                                  .sort((a, b) => b - a);
+
+                                return (
+                                  <>
+                                    {currentList.length === 0 && (
+                                      <span className="text-xs text-slate-400 italic py-1">ยังไม่ได้เลือกเกณฑ์แจ้งเตือน</span>
+                                    )}
+                                    {currentList.map((num) => (
+                                      <span
+                                        key={num}
+                                        className="inline-flex items-center gap-1.5 bg-rose-100 text-rose-800 font-bold text-xs px-3 py-1.5 rounded-xl border border-rose-300 shadow-2xs"
+                                      >
+                                        <span>{num}%</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = currentList.filter((n) => n !== num);
+                                            setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: updated.join(', ') }));
+                                          }}
+                                          className="hover:bg-rose-200 text-rose-700 rounded-full p-0.5 transition-colors cursor-pointer"
+                                          title="ลบเกณฑ์นี้"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                          </svg>
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </>
+                                );
+                              })()}
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-200/60">
+                              <span className="text-[11px] font-bold text-slate-600 mr-2">เพิ่มด่วน:</span>
+                              <div className="inline-flex flex-wrap gap-1.5 mt-1">
+                                {[30, 25, 20, 15, 10, 5, 0].map((preset) => {
+                                  const currentList = (settingsData.alert_low_battery_levels || '')
+                                    .split(',')
+                                    .map((s) => parseInt(s.trim(), 10))
+                                    .filter((n) => !isNaN(n));
+                                  const isSelected = currentList.includes(preset);
+                                  return (
+                                    <button
+                                      key={preset}
+                                      type="button"
+                                      onClick={() => {
+                                        let updated;
+                                        if (isSelected) {
+                                          updated = currentList.filter((n) => n !== preset);
+                                        } else {
+                                          updated = [...currentList, preset].sort((a, b) => b - a);
+                                        }
+                                        setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: updated.join(', ') }));
+                                      }}
+                                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                        isSelected
+                                          ? 'bg-rose-600 text-white shadow-2xs'
+                                          : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-300'
+                                      }`}
+                                    >
+                                      {isSelected ? `✓ ${preset}%` : `+ ${preset}%`}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                placeholder="ระบุเลขเอง (0-100)"
+                                value={customLowBattInput}
+                                onChange={(e) => setCustomLowBattInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const val = parseInt(customLowBattInput, 10);
+                                    if (!isNaN(val) && val >= 0 && val <= 100) {
+                                      const currentList = (settingsData.alert_low_battery_levels || '')
+                                        .split(',')
+                                        .map((s) => parseInt(s.trim(), 10))
+                                        .filter((n) => !isNaN(n));
+                                      if (!currentList.includes(val)) {
+                                        const updated = [...currentList, val].sort((a, b) => b - a);
+                                        setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: updated.join(', ') }));
+                                      }
+                                      setCustomLowBattInput("");
+                                    }
+                                  }
+                                }}
+                                className="w-36 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-mono bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const val = parseInt(customLowBattInput, 10);
+                                  if (isNaN(val) || val < 0 || val > 100) {
+                                    showToast("กรุณาระบุตัวเลขระหว่าง 0 - 100", "error");
+                                    return;
+                                  }
+                                  const currentList = (settingsData.alert_low_battery_levels || '')
+                                    .split(',')
+                                    .map((s) => parseInt(s.trim(), 10))
+                                    .filter((n) => !isNaN(n));
+                                  if (!currentList.includes(val)) {
+                                    const updated = [...currentList, val].sort((a, b) => b - a);
+                                    setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: updated.join(', ') }));
+                                  }
+                                  setCustomLowBattInput("");
+                                }}
+                                className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+                              >
+                                + เพิ่มเกณฑ์
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {settingsTab === 'templates' && (
+                        <div className="space-y-4 animate-fadeIn">
+                          <div className="bg-sky-50 p-3.5 rounded-2xl border border-sky-100 text-xs text-sky-800 leading-relaxed">
+                            <p className="font-bold mb-1">💡 คำแนะนำตัวแปรที่ใช้ได้ในข้อความ (Variables):</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-1.5">
+                              <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{device}"}</code> = ชื่ออุปกรณ์</div>
+                              <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{battery}"}</code> = ระดับแบตเตอรี่ (%)</div>
+                              <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{datetime}"}</code> = วันที่และเวลาปัจจุบัน</div>
+                              <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{duration}"}</code> = ระยะเวลาชาร์จ / ขาดการติดต่อ</div>
+                              <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{start_time}"}</code> = เวลาเริ่มชาร์จ</div>
+                              <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{start_battery}"}</code> = แบตตอนเริ่มชาร์จ (%)</div>
+                              <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{gained}"}</code> = แบตที่เพิ่มขึ้น (+X%)</div>
+                              <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{time}"}</code> = เวลา (เฉพาะชั่วโมง:นาที)</div>
+                            </div>
+                            <p className="mt-2 text-[11px] text-slate-500 font-bold">* คุณสามารถปรับแต่งข้อความได้ทั้งกล่อง ทุกบรรทัด รวมถึงแท็ก HTML เช่น &lt;b&gt;, &lt;code&gt;, &lt;i&gt; ได้อย่างอิสระ 100%</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                1. เริ่มเสียบสายชาร์จ
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={settingsData.msg_template_plugged_in || ''}
+                                onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_plugged_in: e.target.value }))}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                2. ถอดสายชาร์จ
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={settingsData.msg_template_unplugged || ''}
+                                onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_unplugged: e.target.value }))}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                3. ชาร์จเต็ม 100%
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={settingsData.msg_template_full_charge || ''}
+                                onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_full_charge: e.target.value }))}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                4. แบตเตอรี่ใกล้เต็ม (80-95%)
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={settingsData.msg_template_near_full || ''}
+                                onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_near_full: e.target.value }))}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                5. แบตเตอรี่ต่ำ (5-20%)
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={settingsData.msg_template_low_battery || ''}
+                                onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_low_battery: e.target.value }))}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                6. แบตเตอรี่หมดวิกฤต (0%)
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={settingsData.msg_template_battery_empty || ''}
+                                onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_battery_empty: e.target.value }))}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                7. กลับมาเชื่อมต่อระบบ (หลังขาดการติดต่อ)
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={settingsData.msg_template_reconnected || ''}
+                                onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_reconnected: e.target.value }))}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {settingsTab === 'security' && (
+                        <div className="space-y-6 animate-fadeIn">
+                          {/* ส่วนเปลี่ยนรหัสผ่านเข้าแดชบอร์ด */}
+                          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                            <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
+                              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                              </svg>
+                              <span>เปลี่ยนรหัสผ่านเข้าสู่ระบบแดชบอร์ด</span>
+                            </div>
+                            <p className="text-xs text-slate-500">เมื่อเปลี่ยนรหัสผ่านสำเร็จ ระบบจะให้ออกจากระบบทันทีเพื่อเข้าสู่ระบบใหม่ด้วยรหัสใหม่</p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 mb-1">รหัสผ่านปัจจุบัน <span className="text-rose-500">*</span></label>
+                                <input
+                                  type="password"
+                                  value={oldPasswordInput}
+                                  onChange={(e) => setOldPasswordInput(e.target.value)}
+                                  placeholder="รหัสผ่านเดิม"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:border-emerald-500 font-semibold"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 mb-1">รหัสผ่านใหม่ (&gt;= 4 ตัว) <span className="text-rose-500">*</span></label>
+                                <input
+                                  type="password"
+                                  value={newPasswordInput}
+                                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                                  placeholder="รหัสผ่านใหม่"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:border-emerald-500 font-semibold"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 mb-1">ยืนยันรหัสผ่านใหม่ <span className="text-rose-500">*</span></label>
+                                <input
+                                  type="password"
+                                  value={confirmPasswordInput}
+                                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                                  placeholder="พิมพ์ใหม่อีกครั้ง"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:border-emerald-500 font-semibold"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                              <button
+                                type="button"
+                                onClick={handleConfirmChangePassword}
+                                disabled={changingPassword || !oldPasswordInput || !newPasswordInput || !confirmPasswordInput}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                              >
+                                {changingPassword ? (
+                                  <span>กำลังเปลี่ยนรหัสผ่าน...</span>
+                                ) : (
+                                  <>
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span>ยืนยันเปลี่ยนรหัสผ่าน</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-slate-200 my-4"></div>
+
+                          {/* ส่วน API Secret Key */}
+                          <div className="space-y-3">
+                            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200/80 text-xs text-amber-900 leading-relaxed">
+                              <p className="font-bold mb-1">⚠️ คำเตือนความปลอดภัย:</p>
+                              หากเปลี่ยน <b>API Secret Key</b> อุปกรณ์ทั้งหมดที่เชื่อมต่ออยู่ (MacroDroid / Tasker) ต้องอัปเดตรหัสคีย์ใหม่ในสคริปต์ มิฉะนั้นจะไม่สามารถส่งข้อมูลเข้ามาได้
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                API Secret Key (สำหรับส่งข้อมูลจาก MacroDroid / IoT)
+                              </label>
+                              <input
+                                type="text"
+                                value={settingsData.api_secret_key || ''}
+                                onChange={(e) => setSettingsData((prev) => ({ ...prev, api_secret_key: e.target.value }))}
+                                placeholder="secret_batt_2026"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-4 border-t border-slate-100 flex items-center gap-3 mt-6 shrink-0">
                         <button
                           type="button"
-                          onClick={handleTestTelegram}
-                          disabled={testingTelegram}
-                          className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer border border-slate-300 shadow-2xs inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                          onClick={handleCloseSettingsModal}
+                          disabled={savingSettings}
+                          className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          {testingTelegram ? (
-                            <span>กำลังส่งข้อความทดสอบ...</span>
+                          ยกเลิก
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={savingSettings}
+                          className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                        >
+                          {savingSettings ? (
+                            <span>กำลังบันทึกข้อมูล...</span>
                           ) : (
                             <>
-                              <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                              <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                               </svg>
-                              <span>ทดสอบส่งข้อความแจ้งเตือน (Test Notification)</span>
+                              <span>บันทึกการตั้งค่าระบบ</span>
                             </>
                           )}
                         </button>
                       </div>
-                    </div>
+                    </form>
                   )}
-
-                  {settingsTab === 'logic' && (
-                    <div className="space-y-5 animate-fadeIn">
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed">
-                        <p className="font-bold text-slate-800 mb-1">⚙️ การตั้งค่าเงื่อนไขเวลาและระดับแบตเตอรี่:</p>
-                        เมื่ออุปกรณ์อัปเดตสถานะหรือขาดการติดต่อ ระบบจะตรวจสอบเกณฑ์เหล่านี้เพื่อให้แจ้งเตือนได้อย่างแม่นยำตามที่คุณต้องการ
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                          เกณฑ์เวลาขาดการติดต่อ (นาที)
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="1440"
-                          value={settingsData.offline_threshold_minutes || '60'}
-                          onChange={(e) => setSettingsData((prev) => ({ ...prev, offline_threshold_minutes: e.target.value }))}
-                          placeholder="60"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
-                        />
-                        <p className="text-[11px] text-slate-400 mt-1">หากไม่มีข้อมูลส่งมานานกว่ากำหนด ระบบจะแสดงสถานะ &quot;ขาดการติดต่อ&quot; และแจ้งเตือนเมื่อกลับมาออนไลน์</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                          เกณฑ์แจ้งเตือนแบตเตอรี่ใกล้เต็ม (%) (คั่นด้วยเครื่องหมายจุลภาค ,)
-                        </label>
-                        <input
-                          type="text"
-                          value={settingsData.alert_near_full_levels || '80, 90, 95'}
-                          onChange={(e) => setSettingsData((prev) => ({ ...prev, alert_near_full_levels: e.target.value }))}
-                          placeholder="80, 90, 95"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
-                        />
-                        <p className="text-[11px] text-slate-400 mt-1">ตัวอย่าง: 80, 90, 95 (ระบบจะแจ้งเตือนเมื่อชาร์จถึงระดับที่กำหนด)</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                          เกณฑ์แจ้งเตือนแบตเตอรี่ต่ำ (%) (คั่นด้วยเครื่องหมายจุลภาค ,)
-                        </label>
-                        <input
-                          type="text"
-                          value={settingsData.alert_low_battery_levels || '20, 15, 10, 5, 0'}
-                          onChange={(e) => setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: e.target.value }))}
-                          placeholder="20, 15, 10, 5, 0"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
-                        />
-                        <p className="text-[11px] text-slate-400 mt-1">ตัวอย่าง: 20, 15, 10, 5, 0 (ระบบจะแจ้งเตือนเมื่อแบตลดถึงระดับที่กำหนด)</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {settingsTab === 'templates' && (
-                    <div className="space-y-4 animate-fadeIn">
-                      <div className="bg-sky-50 p-3.5 rounded-2xl border border-sky-100 text-xs text-sky-800 leading-relaxed">
-                        <p className="font-bold mb-1">💡 คำแนะนำตัวแปรที่ใช้ได้ในข้อความ (Variables):</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-1.5">
-                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{device}"}</code> = ชื่ออุปกรณ์</div>
-                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{battery}"}</code> = ระดับแบตเตอรี่ (%)</div>
-                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{datetime}"}</code> = วันที่และเวลาปัจจุบัน</div>
-                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{duration}"}</code> = ระยะเวลาชาร์จ / ขาดการติดต่อ</div>
-                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{start_time}"}</code> = เวลาเริ่มชาร์จ</div>
-                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{start_battery}"}</code> = แบตตอนเริ่มชาร์จ (%)</div>
-                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{gained}"}</code> = แบตที่เพิ่มขึ้น (+X%)</div>
-                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{time}"}</code> = เวลา (เฉพาะชั่วโมง:นาที)</div>
-                        </div>
-                        <p className="mt-2 text-[11px] text-slate-500 font-bold">* คุณสามารถปรับแต่งข้อความได้ทั้งกล่อง ทุกบรรทัด รวมถึงแท็ก HTML เช่น &lt;b&gt;, &lt;code&gt;, &lt;i&gt; ได้อย่างอิสระ 100%</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            1. เริ่มเสียบสายชาร์จ
-                          </label>
-                          <textarea
-                            rows={8}
-                            value={settingsData.msg_template_plugged_in || ''}
-                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_plugged_in: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            2. ถอดสายชาร์จ
-                          </label>
-                          <textarea
-                            rows={8}
-                            value={settingsData.msg_template_unplugged || ''}
-                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_unplugged: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            3. ชาร์จเต็ม 100%
-                          </label>
-                          <textarea
-                            rows={8}
-                            value={settingsData.msg_template_full_charge || ''}
-                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_full_charge: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            4. แบตเตอรี่ใกล้เต็ม (80-95%)
-                          </label>
-                          <textarea
-                            rows={8}
-                            value={settingsData.msg_template_near_full || ''}
-                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_near_full: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            5. แบตเตอรี่ต่ำ (5-20%)
-                          </label>
-                          <textarea
-                            rows={8}
-                            value={settingsData.msg_template_low_battery || ''}
-                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_low_battery: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            6. แบตเตอรี่หมดวิกฤต (0%)
-                          </label>
-                          <textarea
-                            rows={8}
-                            value={settingsData.msg_template_battery_empty || ''}
-                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_battery_empty: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            7. กลับมาเชื่อมต่อระบบ (หลังขาดการติดต่อ)
-                          </label>
-                          <textarea
-                            rows={8}
-                            value={settingsData.msg_template_reconnected || ''}
-                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_reconnected: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {settingsTab === 'security' && (
-                    <div className="space-y-4 animate-fadeIn">
-                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200/80 text-xs text-amber-900 leading-relaxed mb-4">
-                        <p className="font-bold mb-1">⚠️ คำเตือนความปลอดภัย:</p>
-                        หากเปลี่ยน <b>API Secret Key</b> อุปกรณ์ทั้งหมดที่เชื่อมต่ออยู่ (MacroDroid / Tasker) ต้องอัปเดตรหัสคีย์ใหม่ในสคริปต์ มิฉะนั้นจะไม่สามารถส่งข้อมูลเข้ามาได้
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                          API Secret Key (สำหรับส่งข้อมูลจาก MacroDroid / IoT)
-                        </label>
-                        <input
-                          type="text"
-                          value={settingsData.api_secret_key || ''}
-                          onChange={(e) => setSettingsData((prev) => ({ ...prev, api_secret_key: e.target.value }))}
-                          placeholder="secret_batt_2026"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-4 border-t border-slate-100 flex items-center gap-3 mt-6 shrink-0">
-                    <button
-                      type="button"
-                      onClick={handleCloseSettingsModal}
-                      disabled={savingSettings}
-                      className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      ยกเลิก
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingSettings}
-                      className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                    >
-                      {savingSettings ? (
-                        <span>กำลังบันทึกข้อมูล...</span>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span>บันทึกการตั้งค่าระบบ</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
+                </>
               )}
             </div>
           </div>
