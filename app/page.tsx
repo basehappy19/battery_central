@@ -1389,6 +1389,15 @@ export default function BatteryDashboard() {
             </div>
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
+                onClick={handleOpenModal}
+                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>เพิ่มอุปกรณ์ใหม่</span>
+              </button>
+              <button
                 onClick={handleOpenReorderModal}
                 disabled={devices.length <= 1}
                 className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm px-5 py-2.5 rounded-2xl border border-slate-300 shadow-sm transition-all hover:shadow cursor-pointer disabled:opacity-50"
@@ -1399,15 +1408,16 @@ export default function BatteryDashboard() {
                 </svg>
                 <span>จัดเรียงตำแหน่ง</span>
               </button>
-              <button
-                onClick={handleOpenModal}
-                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+              <a
+                href="/logs"
+                className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+                title="ดูประวัติคำขอ API และบันทึก Log การทำงานของระบบ"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span>เพิ่มอุปกรณ์ใหม่</span>
-              </button>
+                <span>ประวัติ API</span>
+              </a>
               <button
                 onClick={() => {
                   setShowSettingsModal(true);
@@ -1426,16 +1436,21 @@ export default function BatteryDashboard() {
                 </svg>
                 <span>ตั้งค่าระบบ</span>
               </button>
-              <a
-                href="/logs"
-                className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
-                title="ดูประวัติคำขอ API และบันทึก Log การทำงานของระบบ"
+              <button
+                onClick={() => {
+                  localStorage.removeItem("dashboard_auth");
+                  setAuthenticated(false);
+                  setPassword("");
+                  showToast("ออกจากระบบเรียบร้อยแล้ว", "success");
+                }}
+                className="inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3.5 py-2.5 rounded-2xl border border-rose-200 shadow-sm transition-all hover:shadow cursor-pointer ml-1"
+                title="ออกจากระบบ"
               >
-                <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg className="w-3.5 h-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span>ประวัติ API</span>
-              </a>
+                <span>ออกจากระบบ</span>
+              </button>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-end">
