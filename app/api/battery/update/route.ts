@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import type { Device, BatteryLog } from '@prisma/client';
 import { verifyApiKey } from '@/lib/security';
 import { getSystemSettings, formatTemplateMessage } from '@/lib/settings';
+import { logApiRequest } from '@/lib/api-logger';
 
 async function sendNotification(message: string): Promise<void> {
   console.log(`[ALERT NOTIFICATION]: ${message}`);
@@ -46,7 +47,6 @@ function getChargingSummary(
   for (let j = 0; j < logs.length; j++) {
     const l = logs[j];
     if (l.eventType === 'FULL_CHARGE') {
-      // เมื่อสรุปการชาร์จตอนชาร์จเต็มไปแล้ว ในเซสชันนี้ไม่ต้องสรุปซ้ำอีกตอนถอด
       return null;
     }
     if (l.eventType === 'PLUGGED_IN') {
@@ -110,11 +110,6 @@ interface UpdatePayload {
   key?: string;
 }
 
-/**
- * Advanced BMS Analytics Engine for Battery Estimation
- * Incorporates 7-day Historical Profiling (Median Outlier Rejection),
- * Time-Decayed EWMA, Bayesian Prior Blending, and CC/CV Lithium Tapering.
- */
 function calculateAdvancedTimeRemaining(
   currentBattery: number,
   currentIsCharging: boolean,
@@ -130,7 +125,6 @@ function calculateAdvancedTimeRemaining(
     (l) => now.getTime() - new Date(l.createdAt).getTime() <= sevenDaysMs
   );
 
-  // 1. Calculate 7-Day Historical Median Rate for current state (charging vs discharging)
   const historicalRates: number[] = [];
   for (let i = 0; i < recentLogs.length - 1; i++) {
     const l1 = recentLogs[i];
@@ -154,7 +148,6 @@ function calculateAdvancedTimeRemaining(
       ? historicalRates[mid]
       : (historicalRates[mid - 1] + historicalRates[mid]) / 2;
   } else {
-    // Platform-specific smart defaults (% per hour)
     const p = (platform || '').toLowerCase();
     if (p.includes('esp32') || p.includes('iot') || p.includes('sensor')) {
       historicalRate = currentIsCharging ? 20 : 0.2;
@@ -167,14 +160,12 @@ function calculateAdvancedTimeRemaining(
     }
   }
 
-  // 2. Collect current continuous session points (prepend current point)
   const sessionPoints = [{ batteryLevel: currentBattery, createdAt: now }];
   for (const log of recentLogs) {
     if (log.isCharging !== currentIsCharging) break;
     sessionPoints.push({ batteryLevel: log.batteryLevel, createdAt: new Date(log.createdAt) });
   }
 
-  // 3. Calculate Current Session Rate (EWMA + Overall Linear Slope)
   let sessionRate: number | null = null;
   let sessionDurationHours = 0;
 
@@ -186,7 +177,6 @@ function calculateAdvancedTimeRemaining(
     if (totalDiff > 0 && sessionDurationHours >= (0.5 / 60)) {
       const overallRate = totalDiff / sessionDurationHours;
 
-      // Calculate Time-Decayed EWMA across session segments
       let weightedSum = 0;
       let weightTotal = 0;
       for (let i = 0; i < sessionPoints.length - 1; i++) {
@@ -208,13 +198,11 @@ function calculateAdvancedTimeRemaining(
     }
   }
 
-  // 4. Bayesian Blending of Session Rate and Historical Rate based on session maturity
   const alpha = sessionRate !== null ? Math.min(1.0, sessionDurationHours / 1.0) : 0;
   const effectiveRate = sessionRate !== null
     ? alpha * sessionRate + (1 - alpha) * historicalRate
     : historicalRate;
 
-  // 5. CC/CV Lithium Tapering Compensation & Time Calculation
   let hoursRemaining: number;
   if (currentIsCharging) {
     if (currentBattery < 80) {
@@ -230,15 +218,50 @@ function calculateAdvancedTimeRemaining(
   return Math.max(1, Math.min(100000, minutesRemaining));
 }
 
-export async function POST(request: Request) {
-  try {
-    let body: UpdatePayload;
-    try {
-      body = (await request.json()) as UpdatePayload;
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON syntax' }, { status: 400 });
-    }
+function createResponse(
+  data: Record<string, unknown>,
+  status: number,
+  startTime: number,
+  req: Request,
+  reqBody: unknown
+) {
+  logApiRequest({
+    method: 'POST',
+    path: '/api/battery/update',
+    status,
+    durationMs: Date.now() - startTime,
+    req,
+    requestBody: reqBody,
+    responseBody: data,
+  });
+  return NextResponse.json(data, { status });
+}
 
+export async function GET(request: Request) {
+  const startTime = Date.now();
+  const data = { success: true, message: 'Battery Update Endpoint is Active. Send POST request with JSON payload to update device status.' };
+  logApiRequest({
+    method: 'GET',
+    path: '/api/battery/update',
+    status: 200,
+    durationMs: Date.now() - startTime,
+    req: request,
+    requestBody: null,
+    responseBody: data,
+  });
+  return NextResponse.json(data, { status: 200 });
+}
+
+export async function POST(request: Request) {
+  const startTime = Date.now();
+  let body: UpdatePayload | null = null;
+  try {
+    body = (await request.json()) as UpdatePayload;
+  } catch {
+    return createResponse({ error: 'Invalid JSON syntax' }, 400, startTime, request, null);
+  }
+
+  try {
     const deviceId = body?.deviceId || body?.device_id || body?.id;
     const batteryLevel = body?.batteryLevel !== undefined ? body.batteryLevel : (body?.battery_level !== undefined ? body.battery_level : (body?.level !== undefined ? body.level : body?.battery));
     const isCharging = body?.isCharging !== undefined ? body.isCharging : (body?.is_charging !== undefined ? body.is_charging : (body?.charging !== undefined ? body.charging : body?.plugged));
@@ -246,18 +269,18 @@ export async function POST(request: Request) {
     const platform = body?.platform;
 
     if (!deviceId) {
-      return NextResponse.json({ error: 'Missing deviceId' }, { status: 400 });
+      return createResponse({ error: 'Missing deviceId' }, 400, startTime, request, body);
     }
     if (batteryLevel === undefined || batteryLevel === null) {
-      return NextResponse.json({ error: 'Missing batteryLevel' }, { status: 400 });
+      return createResponse({ error: 'Missing batteryLevel' }, 400, startTime, request, body);
     }
     if (isCharging === undefined || isCharging === null) {
-      return NextResponse.json({ error: 'Missing isCharging' }, { status: 400 });
+      return createResponse({ error: 'Missing isCharging' }, 400, startTime, request, body);
     }
 
     const isValidApiKey = await verifyApiKey(request, body as Record<string, unknown>);
     if (!isValidApiKey) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid API Key' }, { status: 401 });
+      return createResponse({ error: 'Unauthorized: Invalid API Key' }, 401, startTime, request, body);
     }
 
     const cleanDeviceId = String(deviceId).trim();
@@ -268,16 +291,13 @@ export async function POST(request: Request) {
     const rawChargingStr = String(isCharging).trim();
 
     if (rawBatteryStr.includes('[') || rawChargingStr.includes('[')) {
-      return NextResponse.json(
-        { error: 'Invalid values: raw magic text received' },
-        { status: 400 }
-      );
+      return createResponse({ error: 'Invalid values: raw magic text received' }, 400, startTime, request, body);
     }
 
     const cleanedBatteryStr = rawBatteryStr.replace(/[^0-9.]/g, '');
     const currentBattery = Math.max(0, Math.min(100, Number(cleanedBatteryStr)));
     if (isNaN(currentBattery) || cleanedBatteryStr === '') {
-      return NextResponse.json({ error: 'Invalid batteryLevel value (0-100)' }, { status: 400 });
+      return createResponse({ error: 'Invalid batteryLevel value (0-100)' }, 400, startTime, request, body);
     }
 
     let currentIsCharging = false;
@@ -309,17 +329,11 @@ export async function POST(request: Request) {
     });
 
     if (!existingDevice) {
-      return NextResponse.json(
-        { error: 'Device not found' },
-        { status: 404 }
-      );
+      return createResponse({ error: 'Device not found' }, 404, startTime, request, body);
     }
 
     if (existingDevice.acceptingUpdates === false) {
-      return NextResponse.json(
-        { error: 'Device updates disabled' },
-        { status: 403 }
-      );
+      return createResponse({ error: 'Device updates disabled' }, 403, startTime, request, body);
     }
 
     let timeRemaining: number | null = null;
@@ -500,12 +514,9 @@ export async function POST(request: Request) {
     });
 
     const updatedDevice = await prisma.device.findFirst({ where: { id: cleanDeviceId } });
-    return NextResponse.json({ success: true, device: updatedDevice }, { status: 200 });
+    return createResponse({ success: true, device: updatedDevice }, 200, startTime, request, body);
   } catch (error: unknown) {
     console.error('Failed to update battery status:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return createResponse({ error: 'Internal Server Error' }, 500, startTime, request, body);
   }
 }

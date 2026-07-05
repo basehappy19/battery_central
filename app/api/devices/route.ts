@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { getSystemSettings } from '@/lib/settings';
 import type { Device, BatteryLog } from '@prisma/client';
+import { logApiRequest } from '@/lib/api-logger';
 
 type DeviceWithLogs = Device & {
   logs: BatteryLog[];
@@ -11,7 +12,8 @@ type DeviceWithLogs = Device & {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(request: Request) {
+  const startTime = Date.now();
   try {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -182,8 +184,10 @@ export async function GET() {
       };
     });
 
+    const resBody = { devices: devicesWithStats, systemApiKey };
+    logApiRequest({ method: 'GET', path: '/api/devices', status: 200, durationMs: Date.now() - startTime, req: request, requestBody: null, responseBody: { success: true, count: devicesWithStats.length } });
     return NextResponse.json(
-      { devices: devicesWithStats, systemApiKey },
+      resBody,
       {
         status: 200,
         headers: {
@@ -193,6 +197,7 @@ export async function GET() {
     );
   } catch (error: unknown) {
     console.error('Failed to fetch devices:', error);
+    logApiRequest({ method: 'GET', path: '/api/devices', status: 500, durationMs: Date.now() - startTime, req: request, requestBody: null, responseBody: { error: 'Internal Server Error' } });
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 }
@@ -206,8 +211,10 @@ interface PostPayload {
 }
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  let body: PostPayload | null = null;
   try {
-    const body = (await request.json()) as PostPayload;
+    body = (await request.json()) as PostPayload;
     const { name, platform } = body || {};
 
     const cleanName = name && String(name).trim() ? String(name).trim() : 'อุปกรณ์ใหม่';
@@ -237,9 +244,12 @@ export async function POST(request: Request) {
     const sysSettings = await getSystemSettings();
     const apiKey = sysSettings.api_secret_key || process.env.API_SECRET_KEY || 'secret_batt_2026';
 
-    return NextResponse.json({ success: true, device: newDevice, apiKey }, { status: 201 });
+    const resBody = { success: true, device: newDevice, apiKey };
+    logApiRequest({ method: 'POST', path: '/api/devices', status: 201, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: resBody });
+    return NextResponse.json(resBody, { status: 201 });
   } catch (error: unknown) {
     console.error('Failed to create device:', error);
+    logApiRequest({ method: 'POST', path: '/api/devices', status: 500, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: { error: 'Internal Server Error' } });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -251,11 +261,14 @@ interface PatchPayload {
 }
 
 export async function PATCH(request: Request) {
+  const startTime = Date.now();
+  let body: PatchPayload | null = null;
   try {
-    const body = (await request.json()) as PatchPayload;
+    body = (await request.json()) as PatchPayload;
     const { id, name, acceptingUpdates } = body || {};
 
     if (!id || typeof id !== 'string') {
+      logApiRequest({ method: 'PATCH', path: '/api/devices', status: 400, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: { error: 'Missing or invalid device id' } });
       return NextResponse.json({ error: 'Missing or invalid device id' }, { status: 400 });
     }
 
@@ -271,23 +284,29 @@ export async function PATCH(request: Request) {
     });
 
     if (updated.count === 0) {
+      logApiRequest({ method: 'PATCH', path: '/api/devices', status: 404, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: { error: 'Device Not Found' } });
       return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ (Device Not Found)' }, { status: 404 });
     }
 
     const updatedDevice = await prisma.device.findFirst({ where: { id: cleanId } });
-    return NextResponse.json({ success: true, device: updatedDevice }, { status: 200 });
+    const resBody = { success: true, device: updatedDevice };
+    logApiRequest({ method: 'PATCH', path: '/api/devices', status: 200, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: resBody });
+    return NextResponse.json(resBody, { status: 200 });
   } catch (error: unknown) {
     console.error('Failed to update device:', error);
+    logApiRequest({ method: 'PATCH', path: '/api/devices', status: 500, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: { error: 'Internal Server Error' } });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function DELETE(request: Request) {
+  const startTime = Date.now();
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
 
     if (!id || typeof id !== 'string') {
+      logApiRequest({ method: 'DELETE', path: '/api/devices', status: 400, durationMs: Date.now() - startTime, req: request, requestBody: { id }, responseBody: { error: 'Missing or invalid device id' } });
       return NextResponse.json({ error: 'Missing or invalid device id' }, { status: 400 });
     }
 
@@ -302,12 +321,16 @@ export async function DELETE(request: Request) {
     });
 
     if (deleted.count === 0) {
+      logApiRequest({ method: 'DELETE', path: '/api/devices', status: 404, durationMs: Date.now() - startTime, req: request, requestBody: { id }, responseBody: { error: 'Device Not Found' } });
       return NextResponse.json({ error: 'ไม่พบอุปกรณ์นี้ในระบบ' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    const resBody = { success: true };
+    logApiRequest({ method: 'DELETE', path: '/api/devices', status: 200, durationMs: Date.now() - startTime, req: request, requestBody: { id }, responseBody: resBody });
+    return NextResponse.json(resBody, { status: 200 });
   } catch (error: unknown) {
     console.error('Failed to delete device:', error);
+    logApiRequest({ method: 'DELETE', path: '/api/devices', status: 500, durationMs: Date.now() - startTime, req: request, requestBody: null, responseBody: { error: 'Internal Server Error' } });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -317,11 +340,14 @@ interface PutOrderPayload {
 }
 
 export async function PUT(request: Request) {
+  const startTime = Date.now();
+  let body: PutOrderPayload | null = null;
   try {
-    const body = (await request.json()) as PutOrderPayload;
+    body = (await request.json()) as PutOrderPayload;
     const { order } = body || {};
 
     if (!order || !Array.isArray(order)) {
+      logApiRequest({ method: 'PUT', path: '/api/devices', status: 400, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: { error: 'Invalid order array' } });
       return NextResponse.json({ error: 'Invalid order array' }, { status: 400 });
     }
 
@@ -334,9 +360,12 @@ export async function PUT(request: Request) {
       )
     );
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    const resBody = { success: true };
+    logApiRequest({ method: 'PUT', path: '/api/devices', status: 200, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: resBody });
+    return NextResponse.json(resBody, { status: 200 });
   } catch (error: unknown) {
     console.error('Failed to update device order:', error);
+    logApiRequest({ method: 'PUT', path: '/api/devices', status: 500, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: { error: 'Internal Server Error' } });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

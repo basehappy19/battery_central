@@ -38,4 +38,18 @@ model Setting {
   value String
 }
 
+model ApiLog {
+  id           String   @id @default(uuid())
+  method       String   // "GET", "POST", "PATCH", "DELETE"
+  path         String   // e.g., "/api/battery/update"
+  status       Int      // e.g., 200, 400, 401, 500
+  durationMs   Int      // Execution time in milliseconds
+  ip           String?  // Source IP or identifier
+  userAgent    String?  // e.g., "MacroDroid", "Tasker", "ESP32", "Mozilla/5.0"
+  requestBody  String?  // JSON string of request body or query params
+  responseBody String?  // JSON string of response payload
+  createdAt    DateTime @default(now())
 
+  @@index([createdAt])
+  @@index([path, status])
+}
