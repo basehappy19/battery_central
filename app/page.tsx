@@ -223,38 +223,125 @@ const getPlatformStyle = (platform: string, isOffline?: boolean): { bg: string; 
   };
 };
 
+const getTooltipTheme = (pt: any) => {
+  const { isCharging, eventType, level } = pt;
+
+  if (eventType === 'BATTERY_EMPTY' || eventType === 'LOW_BATTERY' || (level <= 15 && !isCharging)) {
+    return {
+      bg: "bg-rose-950/95 border-rose-600/80 shadow-rose-950/60 text-rose-50",
+      subText: "text-rose-200",
+      border: "border-rose-800/80",
+      levelText: "text-rose-300",
+      badge: "bg-rose-900/90 text-rose-100 border border-rose-700",
+      bulletText: "text-rose-300 font-bold",
+      diffPos: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40",
+      diffNeg: "bg-rose-500/30 text-rose-200 border border-rose-500/50",
+      dot: "bg-rose-400 animate-pulse",
+    };
+  }
+
+  if (eventType === 'UNPLUGGED') {
+    return {
+      bg: "bg-amber-950/95 border-amber-600/80 shadow-amber-950/60 text-amber-50",
+      subText: "text-amber-200",
+      border: "border-amber-800/80",
+      levelText: "text-amber-300",
+      badge: "bg-amber-900/90 text-amber-100 border border-amber-700",
+      bulletText: "text-amber-300 font-bold",
+      diffPos: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40",
+      diffNeg: "bg-rose-500/30 text-rose-200 border border-rose-500/50",
+      dot: "bg-amber-400",
+    };
+  }
+
+  if (eventType === 'FULL') {
+    return {
+      bg: "bg-cyan-950/95 border-cyan-600/80 shadow-cyan-950/60 text-cyan-50",
+      subText: "text-cyan-200",
+      border: "border-cyan-800/80",
+      levelText: "text-cyan-300",
+      badge: "bg-cyan-900/90 text-cyan-100 border border-cyan-700",
+      bulletText: "text-cyan-300 font-bold",
+      diffPos: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40",
+      diffNeg: "bg-rose-500/30 text-rose-200 border border-rose-500/50",
+      dot: "bg-cyan-400",
+    };
+  }
+
+  if (eventType === 'NEAR_FULL') {
+    return {
+      bg: "bg-indigo-950/95 border-indigo-600/80 shadow-indigo-950/60 text-indigo-50",
+      subText: "text-indigo-200",
+      border: "border-indigo-800/80",
+      levelText: "text-indigo-300",
+      badge: "bg-indigo-900/90 text-indigo-100 border border-indigo-700",
+      bulletText: "text-indigo-300 font-bold",
+      diffPos: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40",
+      diffNeg: "bg-rose-500/30 text-rose-200 border border-rose-500/50",
+      dot: "bg-indigo-400",
+    };
+  }
+
+  if (isCharging || eventType === 'PLUGGED_IN') {
+    return {
+      bg: "bg-emerald-950/95 border-emerald-600/80 shadow-emerald-950/60 text-emerald-50",
+      subText: "text-emerald-200",
+      border: "border-emerald-800/80",
+      levelText: "text-emerald-300",
+      badge: "bg-emerald-900/90 text-emerald-100 border border-emerald-700",
+      bulletText: "text-emerald-300 font-bold",
+      diffPos: "bg-emerald-500/30 text-emerald-200 border border-emerald-400/50",
+      diffNeg: "bg-rose-500/30 text-rose-200 border border-rose-500/50",
+      dot: "bg-emerald-400 animate-pulse",
+    };
+  }
+
+  return {
+    bg: "bg-blue-950/95 border-blue-600/80 shadow-blue-950/60 text-blue-50",
+    subText: "text-blue-200",
+    border: "border-blue-800/80",
+    levelText: "text-blue-300",
+    badge: "bg-blue-900/90 text-blue-100 border border-blue-700",
+    bulletText: "text-blue-300 font-bold",
+    diffPos: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40",
+    diffNeg: "bg-rose-500/30 text-rose-200 border border-rose-500/50",
+    dot: "bg-blue-400",
+  };
+};
+
 const CustomGraphTooltip = ({ active, payload }: any) => {
   if (!active || !payload || !payload.length) return null;
   const pt = payload[0].payload;
   const isCharging = pt.isCharging;
+  const theme = getTooltipTheme(pt);
 
   return (
-    <div className="bg-slate-900/90 text-white backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700/80 shadow-2xl text-xs min-w-[155px] animate-in fade-in zoom-in-95 duration-150 pointer-events-none z-50">
+    <div className={`${theme.bg} backdrop-blur-md px-3.5 py-2.5 rounded-xl border shadow-2xl text-xs min-w-[160px] animate-in fade-in zoom-in-95 duration-150 pointer-events-none z-50 transition-colors`}>
       <div className="flex items-center justify-between gap-3 mb-1.5">
-        <span className="text-[11px] font-medium text-slate-300">{pt.time}</span>
+        <span className={`text-[11px] font-medium ${theme.subText}`}>{pt.time}</span>
         {pt.diff !== 0 && pt.diff !== undefined && (
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-            pt.diff > 0 ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+            pt.diff > 0 ? theme.diffPos : theme.diffNeg
           }`}>
             {pt.diff > 0 ? `+${pt.diff}%` : `${pt.diff}%`}
           </span>
         )}
       </div>
       
-      <div className="flex items-center justify-between gap-4 py-1 border-t border-slate-800">
+      <div className={`flex items-center justify-between gap-4 py-1.5 border-t ${theme.border}`}>
         <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full ${isCharging ? "bg-emerald-400 animate-pulse" : "bg-blue-400"}`} />
-          <span className={`text-base font-black ${isCharging ? "text-emerald-400" : "text-blue-400"}`}>
+          <span className={`w-2 h-2 rounded-full ${theme.dot}`} />
+          <span className={`text-base font-black ${theme.levelText}`}>
             {pt.level}%
           </span>
         </div>
-        <span className="text-[11px] font-bold text-slate-200 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${theme.badge}`}>
           {isCharging ? "ชาร์จไฟ" : "ใช้งาน"}
         </span>
       </div>
 
       {pt.eventType && (
-        <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] font-semibold text-amber-300 flex items-center gap-1">
+        <div className={`mt-1 pt-1.5 border-t ${theme.border} text-[10px] flex items-center gap-1.5 ${theme.bulletText}`}>
           <span>•</span>
           <span>
             {pt.eventType === 'PLUGGED_IN' && 'เริ่มเสียบสายชาร์จ'}
