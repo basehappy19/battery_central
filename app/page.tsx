@@ -9,6 +9,8 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  ReferenceArea,
+  ReferenceLine,
 } from "recharts";
 
 interface HistoryEvent {
@@ -21,6 +23,8 @@ interface HistoryEvent {
   durationMinutes?: number;
   offlineDurationMinutes?: number;
   offlineSince?: string;
+  startChargeTime?: string;
+  startChargeLevel?: number;
 }
 
 interface GraphPoint {
@@ -89,7 +93,10 @@ const formatTimeRemaining = (minutes: number | null | undefined, isCharging: boo
     timeStr = `${mins} นาที`;
   }
 
-  return isCharging ? `ชาร์จเต็มในอีกประมาณ ~${timeStr}` : `เหลือเวลาใช้งานอีก ~${timeStr}`;
+  const targetTime = new Date(Date.now() + minutes * 60 * 1000);
+  const clockStr = targetTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  return isCharging ? `ชาร์จเต็มในอีกประมาณ ${timeStr} (เวลา ${clockStr})` : `เหลือเวลาใช้งานอีก ${timeStr} (เวลา ${clockStr})`;
 };
 
 const formatDuration = (totalMinutes: number): string => {
@@ -108,15 +115,31 @@ const formatEventType = (evt: HistoryEvent): string => {
   const level = evt.batteryLevel;
   switch (evt.eventType) {
     case 'PLUGGED_IN':
-      return `เสียบสายชาร์จ (${level}%)`;
-    case 'UNPLUGGED': {
-      let base = `ถอดสายชาร์จ (${level}%)`;
-      if (evt.chargeGained !== undefined && evt.durationMinutes !== undefined) {
-        const sign = evt.chargeGained > 0 ? `+${evt.chargeGained}` : `${evt.chargeGained}`;
-        const timeStr = formatDuration(evt.durationMinutes);
-        base += ` [ชาร์จเพิ่ม ${sign}% ใช้เวลา ${timeStr}]`;
+      return `เริ่มเสียบสายชาร์จ (${level}%)`;
+    case 'UNPLUGGED':
+    case 'FULL_CHARGE': {
+      const title = evt.eventType === 'FULL_CHARGE' ? `ชาร์จแบตเตอรี่เต็ม (100%)` : `ถอดสายชาร์จ (${level}%)`;
+      if (
+        evt.startChargeTime &&
+        evt.startChargeLevel !== undefined &&
+        evt.chargeGained !== undefined &&
+        evt.durationMinutes !== undefined
+      ) {
+        const startTimeStr = new Date(evt.startChargeTime).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+        const endTimeStr = new Date(evt.createdAt).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+        const durStr = formatDuration(evt.durationMinutes);
+        const gainedStr = evt.chargeGained > 0 ? `+${evt.chargeGained}%` : `${evt.chargeGained}%`;
+        return `${title} [ชาร์จตั้งแต่ ${startTimeStr} (${evt.startChargeLevel}%) ถึง ${endTimeStr} (${level}%) ได้มา ${gainedStr} ใช้เวลา ${durStr}]`;
       }
-      return base;
+      return title;
     }
     case 'RECONNECTED': {
       let base = `กลับมาเชื่อมต่อระบบ (${level}%)`;
@@ -127,8 +150,6 @@ const formatEventType = (evt: HistoryEvent): string => {
       }
       return base;
     }
-    case 'FULL_CHARGE':
-      return `ชาร์จแบตเตอรี่เต็ม (100%)`;
     default:
       return `บันทึกสถานะ (${level}%)`;
   }
@@ -196,17 +217,110 @@ const getPlatformStyle = (platform: string, isOffline?: boolean): { bg: string; 
   };
 };
 
+const CustomBatteryDot = (props: any) => {
+  const { cx, cy, payload } = props;
+  if (cx === undefined || cy === undefined || !payload) return null;
+  if (payload.isCharging) {
+    return (
+      <g key={`dot-${cx}-${cy}`}>
+        <circle cx={cx} cy={cy} r={5} fill="#10b981" stroke="#ffffff" strokeWidth={2} className="shadow-sm" />
+        <circle cx={cx} cy={cy} r={9} fill="#10b981" fillOpacity={0.35} className="animate-pulse" />
+      </g>
+    );
+  }
+  return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={3} fill="#3b82f6" stroke="#ffffff" strokeWidth={1.5} />;
+};
+
+const CustomGraphTooltip = ({ active, payload }: any) => {
+  if (!active || !payload || !payload.length) return null;
+  const pt = payload[0].payload;
+  const isCharging = pt.isCharging;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-xl text-xs min-w-[170px] animate-in fade-in zoom-in-95 duration-150 z-50">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+        <span className="font-semibold text-slate-600">เวลา {pt.time}</span>
+        {pt.diff !== 0 && pt.diff !== undefined && (
+          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+            pt.diff > 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+          }`}>
+            {pt.diff > 0 ? `+${pt.diff}%` : `${pt.diff}%`}
+          </span>
+        )}
+      </div>
+      <div className="flex items-baseline justify-between gap-3 mb-2.5">
+        <span className="text-slate-500 font-medium">ระดับแบตเตอรี่:</span>
+        <span className={`text-lg font-black ${isCharging ? "text-emerald-600" : "text-blue-600"}`}>
+          {pt.level}%
+        </span>
+      </div>
+      <div className="pt-0.5">
+        {isCharging ? (
+          <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50/90 px-2.5 py-1 rounded-lg font-bold border border-emerald-200/60 shadow-sm shadow-emerald-500/10">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            กำลังชาร์จไฟ (Charging)
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50/90 px-2.5 py-1 rounded-lg font-bold border border-blue-200/60 shadow-sm shadow-blue-500/10">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            ใช้งานปกติ (Discharging)
+          </div>
+        )}
+      </div>
+      {pt.eventType && (
+        <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] font-bold text-slate-700 flex items-center gap-1">
+          {pt.eventType === 'PLUGGED_IN' && 'เริ่มเสียบสายชาร์จ'}
+          {pt.eventType === 'UNPLUGGED' && 'ถอดสายชาร์จแล้ว'}
+          {pt.eventType === 'FULL' && 'ชาร์จเต็ม 100%'}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
-  const chartData = useMemo(() => {
-    if (!data || data.length === 0) return [];
-    return data.map((pt) => {
+  const { chartData, chargingSpans } = useMemo(() => {
+    if (!data || data.length === 0) return { chartData: [], chargingSpans: [] };
+    
+    const formatted = data.map((pt, idx) => {
       const d = new Date(pt.time);
+      const prevPt = idx > 0 ? data[idx - 1] : null;
+      const diff = prevPt ? pt.level - prevPt.level : 0;
+      let eventType: string | null = null;
+      if (prevPt && pt.isCharging && !prevPt.isCharging) {
+        eventType = 'PLUGGED_IN';
+      } else if (prevPt && !pt.isCharging && prevPt.isCharging) {
+        eventType = 'UNPLUGGED';
+      } else if (pt.isCharging && pt.level === 100 && (!prevPt || prevPt.level < 100)) {
+        eventType = 'FULL';
+      }
+
       return {
         time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        rawTime: pt.time,
         level: pt.level,
         isCharging: pt.isCharging,
+        diff,
+        eventType,
       };
     });
+
+    const spans: { start: string; end: string }[] = [];
+    let curStart: string | null = null;
+    for (let i = 0; i < formatted.length; i++) {
+      const pt = formatted[i];
+      if (pt.isCharging && !curStart) {
+        curStart = pt.time;
+      } else if (!pt.isCharging && curStart) {
+        spans.push({ start: curStart, end: pt.time });
+        curStart = null;
+      }
+    }
+    if (curStart && formatted.length > 0) {
+      spans.push({ start: curStart, end: formatted[formatted.length - 1].time });
+    }
+
+    return { chartData: formatted, chargingSpans: spans };
   }, [data]);
 
   if (!chartData || chartData.length === 0) {
@@ -215,16 +329,28 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
 
   return (
     <div className="bg-slate-50/90 p-3 sm:p-4 rounded-xl border border-slate-200/60 mt-3 w-full">
-      <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-        กราฟแบตเตอรี่ตลอดทั้งวัน (00:00 AM - 11:59 PM)
-      </p>
-      <div className="w-full h-40 sm:h-48">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+          กราฟแบตเตอรี่ตลอดทั้งวัน (00:00 AM - 11:59 PM)
+        </p>
+        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] font-medium">
+          <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50/90 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-sm shadow-emerald-500/10 font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            ช่วงชาร์จไฟ
+          </span>
+          <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50/90 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-sm shadow-blue-500/10 font-bold">
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            ใช้งานปกติ
+          </span>
+        </div>
+      </div>
+      <div className="w-full h-44 sm:h-52">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorLevel" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
@@ -240,25 +366,69 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
               stroke="#cbd5e1"
               unit="%"
             />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#ffffff",
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                fontSize: "12px",
-              }}
-              formatter={(val: unknown) => [`${Number(val)}%`, "ระดับแบตเตอรี่"]}
-              labelFormatter={(label) => `เวลา: ${label}`}
-            />
+            
+            {chargingSpans.map((span, idx) => (
+              <ReferenceArea
+                key={`span-${idx}`}
+                x1={span.start}
+                x2={span.end}
+                fill="#10b981"
+                fillOpacity={0.15}
+                stroke="#059669"
+                strokeOpacity={0.3}
+                strokeDasharray="3 3"
+              />
+            ))}
+
+            {chartData.map((pt, idx) => {
+              if (pt.eventType === 'PLUGGED_IN') {
+                return (
+                  <ReferenceLine
+                    key={`ref-${idx}`}
+                    x={pt.time}
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    strokeDasharray="3 3"
+                    label={{ value: 'เริ่มชาร์จ', fill: '#047857', fontSize: 10, fontWeight: 700, position: 'top' }}
+                  />
+                );
+              }
+              if (pt.eventType === 'UNPLUGGED') {
+                return (
+                  <ReferenceLine
+                    key={`ref-${idx}`}
+                    x={pt.time}
+                    stroke="#f59e0b"
+                    strokeWidth={1.5}
+                    strokeDasharray="3 3"
+                    label={{ value: 'ถอดสาย', fill: '#d97706', fontSize: 10, fontWeight: 700, position: 'top' }}
+                  />
+                );
+              }
+              if (pt.eventType === 'FULL') {
+                return (
+                  <ReferenceLine
+                    key={`ref-${idx}`}
+                    x={pt.time}
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    label={{ value: 'เต็ม 100%', fill: '#1d4ed8', fontSize: 10, fontWeight: 700, position: 'top' }}
+                  />
+                );
+              }
+              return null;
+            })}
+
+            <Tooltip content={<CustomGraphTooltip />} />
             <Area
               type="monotone"
               dataKey="level"
-              stroke="#10b981"
+              stroke="#3b82f6"
               strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#colorLevel)"
-              activeDot={{ r: 5, fill: "#059669", stroke: "#ffffff", strokeWidth: 2 }}
+              dot={<CustomBatteryDot />}
+              activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>

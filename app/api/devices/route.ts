@@ -55,6 +55,8 @@ export async function GET() {
         durationMinutes?: number;
         offlineDurationMinutes?: number;
         offlineSince?: string;
+        startChargeTime?: string;
+        startChargeLevel?: number;
       }[] = [];
 
       for (let i = 0; i < logs.length; i++) {
@@ -72,6 +74,8 @@ export async function GET() {
         let durationMinutes: number | undefined;
         let offlineDurationMinutes: number | undefined;
         let offlineSince: string | undefined;
+        let startChargeTime: string | undefined;
+        let startChargeLevel: number | undefined;
 
         if (l.eventType === 'RECONNECTED') {
           const prevLog = logs[i + 1];
@@ -80,14 +84,18 @@ export async function GET() {
             offlineDurationMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
             offlineSince = prevLog.createdAt.toISOString();
           }
-        } else if (l.eventType === 'PLUGGED_IN') {
-          for (let j = i - 1; j >= 0; j--) {
-            const nextLog = logs[j];
-            if (nextLog.eventType === 'UNPLUGGED' || nextLog.eventType === 'FULL_CHARGE') {
-              const gained = nextLog.batteryLevel - l.batteryLevel;
-              if (gained > 0) chargeGained = gained;
-              const diffMs = nextLog.createdAt.getTime() - l.createdAt.getTime();
-              durationMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+        } else if (l.eventType === 'UNPLUGGED' || l.eventType === 'FULL_CHARGE') {
+          for (let j = i + 1; j < logs.length; j++) {
+            const prevLog = logs[j];
+            if (prevLog.eventType === 'PLUGGED_IN' || (!prevLog.isCharging && j > i + 1)) {
+              const startLog = prevLog.eventType === 'PLUGGED_IN' ? prevLog : logs[j - 1];
+              if (startLog && startLog.isCharging) {
+                startChargeTime = startLog.createdAt.toISOString();
+                startChargeLevel = startLog.batteryLevel;
+                chargeGained = l.batteryLevel - startLog.batteryLevel;
+                const diffMs = l.createdAt.getTime() - startLog.createdAt.getTime();
+                durationMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+              }
               break;
             }
           }
@@ -103,6 +111,8 @@ export async function GET() {
           durationMinutes,
           offlineDurationMinutes,
           offlineSince,
+          startChargeTime,
+          startChargeLevel,
         });
       }
 
