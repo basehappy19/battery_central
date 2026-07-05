@@ -1240,7 +1240,6 @@ export default function BatteryDashboard() {
       });
       if (res.ok) {
         showToast('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว', 'success');
-        handleCloseSettingsModal();
         fetchDevices(true);
       } else {
         const err = await res.json();
@@ -2076,7 +2075,7 @@ export default function BatteryDashboard() {
                                 const currentList = (settingsData.alert_low_battery_levels || '')
                                   .split(',')
                                   .map((s) => parseInt(s.trim(), 10))
-                                  .filter((n) => !isNaN(n) && n >= 0 && n <= 100)
+                                  .filter((n) => !isNaN(n) && n > 0 && n <= 100)
                                   .sort((a, b) => b - a);
 
                                 return (
@@ -2113,25 +2112,27 @@ export default function BatteryDashboard() {
                             <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60">
                               <input
                                 type="number"
-                                min="0"
+                                min="1"
                                 max="100"
-                                placeholder="ระบุเลขเอง (0-100)"
+                                placeholder="ระบุเลขเอง (1-100)"
                                 value={customLowBattInput}
                                 onChange={(e) => setCustomLowBattInput(e.target.value)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     e.preventDefault();
                                     const val = parseInt(customLowBattInput, 10);
-                                    if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    if (!isNaN(val) && val > 0 && val <= 100) {
                                       const currentList = (settingsData.alert_low_battery_levels || '')
                                         .split(',')
                                         .map((s) => parseInt(s.trim(), 10))
-                                        .filter((n) => !isNaN(n));
+                                        .filter((n) => !isNaN(n) && n > 0);
                                       if (!currentList.includes(val)) {
                                         const updated = [...currentList, val].sort((a, b) => b - a);
                                         setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: updated.join(', ') }));
                                       }
                                       setCustomLowBattInput("");
+                                    } else if (val === 0) {
+                                      showToast("0% มีแจ้งเตือนแยกอยู่ในข้อ 6 แล้ว", "info");
                                     }
                                   }
                                 }}
@@ -2141,14 +2142,18 @@ export default function BatteryDashboard() {
                                 type="button"
                                 onClick={() => {
                                   const val = parseInt(customLowBattInput, 10);
-                                  if (isNaN(val) || val < 0 || val > 100) {
-                                    showToast("กรุณาระบุตัวเลขระหว่าง 0 - 100", "error");
+                                  if (isNaN(val) || val <= 0 || val > 100) {
+                                    if (val === 0) {
+                                      showToast("0% มีแจ้งเตือนแยกอยู่ในข้อ 6 แล้ว", "info");
+                                    } else {
+                                      showToast("กรุณาระบุตัวเลขระหว่าง 1 - 100", "error");
+                                    }
                                     return;
                                   }
                                   const currentList = (settingsData.alert_low_battery_levels || '')
                                     .split(',')
                                     .map((s) => parseInt(s.trim(), 10))
-                                    .filter((n) => !isNaN(n));
+                                    .filter((n) => !isNaN(n) && n > 0);
                                   if (!currentList.includes(val)) {
                                     const updated = [...currentList, val].sort((a, b) => b - a);
                                     setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: updated.join(', ') }));
@@ -2359,7 +2364,7 @@ export default function BatteryDashboard() {
                             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
                               <div className="flex items-center justify-between">
                                 <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                                  6. แบตเตอรี่หมดวิกฤต (0%)
+                                  6. แบตเตอรี่หมด (0%)
                                 </label>
                                 <div className="flex items-center gap-2">
                                   <span className="text-[11px] text-slate-500 font-medium">

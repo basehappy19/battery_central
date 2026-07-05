@@ -344,7 +344,7 @@ export async function POST(request: Request) {
     const sysSettings = await getSystemSettings();
     const offlineThreshold = Number(sysSettings.offline_threshold_minutes) || 60;
     const nearFullLevels = (sysSettings.alert_near_full_levels || '80, 90, 95').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n));
-    const lowBatteryLevels = (sysSettings.alert_low_battery_levels || '20, 15, 10, 5, 0').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n));
+    const lowBatteryLevels = (sysSettings.alert_low_battery_levels || '20, 15, 10, 5').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n > 0);
     const nowTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
     const nowDateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const nowDateTimeStr = `${nowDateStr} | ${nowTimeStr}`;
