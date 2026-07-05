@@ -7,7 +7,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'กรุณาระบุ Bot Token และ Chat ID' }, { status: 400 });
     }
 
-    const testMsg = message || '🔔 <b>[ข้อความทดสอบจาก Battery Central]</b>\nการเชื่อมต่อ Telegram Bot ของคุณทำงานได้อย่างถูกต้องแล้ว!';
+    const testMsg = message || '<b>[ข้อความทดสอบจาก Battery Central]</b>\nการเชื่อมต่อ Telegram Bot ของคุณทำงานได้อย่างถูกต้องแล้ว!';
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
     
     const response = await fetch(url, {
