@@ -424,7 +424,7 @@ export default function ApiLogsPage() {
       {/* Detail Modal */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-none sm:rounded-3xl max-w-none sm:max-w-3xl w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[90vh] overflow-hidden shadow-none sm:shadow-2xl border-0 sm:border border-slate-100 flex flex-col my-0 sm:my-auto">
+          <div className="bg-white rounded-none sm:rounded-3xl max-w-none sm:max-w-3xl w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[90vh] overflow-hidden shadow-none sm:shadow-2xl border-0 sm:border border-slate-100 flex flex-col justify-center my-0 sm:my-auto">
             {/* Modal Header */}
             <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">

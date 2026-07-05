@@ -2630,7 +2630,7 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white/95 backdrop-blur-2xl rounded-none sm:rounded-3xl md:rounded-[2.5rem] ${createdResult ? "max-w-none sm:max-w-3xl md:max-w-4xl lg:max-w-5xl" : "max-w-none sm:max-w-xl md:max-w-2xl lg:max-w-3xl"} w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[92vh] p-6 sm:p-10 md:p-14 border-0 sm:border border-slate-200/80 shadow-none sm:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-0 sm:my-auto transition-all duration-300 flex flex-col overflow-y-auto ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-none sm:rounded-3xl md:rounded-[2.5rem] ${createdResult ? "max-w-none sm:max-w-3xl md:max-w-4xl lg:max-w-5xl" : "max-w-none sm:max-w-xl md:max-w-2xl lg:max-w-3xl"} w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[92vh] p-6 sm:p-10 md:p-14 border-0 sm:border border-slate-200/80 shadow-none sm:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-0 sm:my-auto transition-all duration-300 flex flex-col justify-center overflow-y-auto ${
                 isClosingModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
