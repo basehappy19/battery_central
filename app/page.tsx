@@ -70,11 +70,18 @@ const getBatteryColor = (level: number, isOffline?: boolean): string => {
 const formatTimeRemaining = (minutes: number | null | undefined, isCharging: boolean, isOffline?: boolean): string | null => {
   if (isOffline) return null;
   if (minutes === null || minutes === undefined || minutes <= 0) return null;
-  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(minutes / (60 * 24));
+  const hours = Math.floor((minutes % (60 * 24)) / 60);
   const mins = minutes % 60;
   
   let timeStr = "";
-  if (hours > 0 && mins > 0) {
+  if (days > 0) {
+    if (hours > 0) {
+      timeStr = `${days} วัน ${hours} ชม.`;
+    } else {
+      timeStr = `${days} วัน`;
+    }
+  } else if (hours > 0 && mins > 0) {
     timeStr = `${hours} ชม. ${mins} นาที`;
   } else if (hours > 0) {
     timeStr = `${hours} ชม.`;
@@ -86,8 +93,12 @@ const formatTimeRemaining = (minutes: number | null | undefined, isCharging: boo
 };
 
 const formatDuration = (totalMinutes: number): string => {
-  const hours = Math.floor(totalMinutes / 60);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
   const mins = totalMinutes % 60;
+  if (days > 0) {
+    return hours > 0 ? `${days} วัน ${hours} ชม.` : `${days} วัน`;
+  }
   if (hours > 0 && mins > 0) return `${hours} ชม. ${mins} นาที`;
   if (hours > 0) return `${hours} ชม.`;
   return `${mins} นาที`;
