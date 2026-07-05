@@ -48,8 +48,8 @@ export default function ApiLogsPage() {
       : 0;
 
   const fetchLogs = useCallback(
-    async (pageNum = pagination.page, limitNum = pagination.limit) => {
-      setLoading(true);
+    async (pageNum = pagination.page, limitNum = pagination.limit, isBackground = false) => {
+      if (!isBackground) setLoading(true);
       try {
         const params = new URLSearchParams({
           page: String(pageNum),
@@ -69,15 +69,23 @@ export default function ApiLogsPage() {
       } catch (err) {
         console.error("Failed to fetch logs:", err);
       } finally {
-        setLoading(false);
+        if (!isBackground) setLoading(false);
       }
     },
     [methodFilter, statusFilter, searchQuery, pagination.page, pagination.limit]
   );
 
   useEffect(() => {
-    fetchLogs(1, pagination.limit);
+    fetchLogs(1, pagination.limit, false);
   }, [methodFilter, statusFilter]);
+
+  // Realtime auto-update polling every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchLogs(pagination.page, pagination.limit, true);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [fetchLogs, pagination.page, pagination.limit]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,16 +188,16 @@ export default function ApiLogsPage() {
           </div>
 
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-            <button
-              onClick={() => fetchLogs()}
-              title="รีเฟรชข้อมูล"
-              className="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs transition-colors cursor-pointer"
+            <div
+              title="ระบบกำลังอัปเดตประวัติการใช้งานแบบเรียลไทม์อัตโนมัติ"
+              className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-emerald-200/80 shadow-xs select-none"
             >
-              <svg className={`w-4 h-4 text-slate-500 shrink-0 ${loading ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span className="font-bold">รีเฟรช</span>
-            </button>
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>เรียลไทม์</span>
+            </div>
 
             <button
               onClick={handleClearLogs}
