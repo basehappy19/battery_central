@@ -1302,38 +1302,93 @@ export default function BatteryDashboard() {
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex items-center justify-center p-4 sm:p-6 font-sans">
-        <div className="max-w-md w-full bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border border-slate-200/80 shadow-md">
-          <div className="text-center mb-6 sm:mb-8">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3.5 border border-emerald-200 shadow-sm">
-              <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 md:p-10 font-sans relative overflow-hidden selection:bg-emerald-500 selection:text-white">
+        {/* Ambient background glow effects */}
+        <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none animate-pulse duration-1000"></div>
+        <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none animate-pulse duration-1000" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px] opacity-20 pointer-events-none"></div>
+
+        <div className="max-w-xl w-full bg-slate-900/80 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] p-8 sm:p-12 md:p-14 border border-slate-800/80 shadow-2xl shadow-emerald-950/40 relative z-10 transition-all">
+          <div className="text-center mb-8 sm:mb-10">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 sm:mb-8 group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-3xl blur-md opacity-70 group-hover:opacity-100 transition duration-500 animate-tilt"></div>
+              <div className="relative w-full h-full bg-gradient-to-tr from-slate-900 to-slate-800 text-emerald-400 rounded-3xl flex items-center justify-center border border-emerald-500/30 shadow-inner">
+                <svg className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_rgba(16,185,129,0.5)] transition-transform duration-300 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">ระบบติดตามแบตเตอรี่</h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1.5">กรุณาระบุรหัสผ่านเพื่อเข้าสู่ระบบแดชบอร์ด</p>
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+              ระบบติดตามแบตเตอรี่
+            </h1>
+            <p className="text-sm sm:text-base text-slate-400 mt-2.5 font-medium max-w-sm mx-auto">
+              กรุณาระบุรหัสผ่านเพื่อเข้าสู่ระบบแดชบอร์ดจัดการและติดตามสถานะแบบเรียลไทม์
+            </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <input
-                type="password"
-                placeholder="ระบุรหัสผ่าน..."
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white transition-colors"
-                autoFocus
-              />
-              {authError && <p className="text-xs font-semibold text-rose-500 mt-2 text-center">{authError}</p>}
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 ml-1">
+                รหัสผ่านเข้าสู่ระบบ
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4.5 flex items-center pointer-events-none text-slate-500">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
+                <input
+                  type="password"
+                  placeholder="ระบุรหัสผ่านแดชบอร์ด..."
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 sm:py-4.5 rounded-2xl border border-slate-700/80 bg-slate-950/60 text-white placeholder-slate-500 text-base font-mono focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner"
+                  autoFocus
+                />
+              </div>
+              {authError && (
+                <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold mt-3 animate-fade-in">
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{authError}</span>
+                </div>
+              )}
             </div>
+
             <button
               type="submit"
               disabled={verifying}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              className="w-full relative group overflow-hidden rounded-2xl p-px font-bold text-base sm:text-lg transition-all shadow-lg shadow-emerald-900/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {verifying ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
+              <span className="absolute inset-0 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 group-hover:opacity-90 transition-opacity"></span>
+              <span className="relative block px-6 py-4 sm:py-4.5 rounded-[15px] bg-emerald-600 group-hover:bg-emerald-500 text-white transition-colors flex items-center justify-center gap-2.5">
+                {verifying ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>กำลังตรวจสอบสิทธิ์...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>เข้าสู่ระบบแดชบอร์ด</span>
+                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </>
+                )}
+              </span>
             </button>
           </form>
+
+          <div className="mt-8 pt-6 border-t border-slate-800/80 text-center">
+            <div className="inline-flex items-center gap-2 text-xs font-mono text-slate-500">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>Battery Central System • v2.0 Premium</span>
+            </div>
+          </div>
         </div>
       </div>
     );
