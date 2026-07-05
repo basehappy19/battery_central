@@ -1527,68 +1527,68 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-xl md:max-w-2xl w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] max-w-2xl sm:max-w-3xl lg:max-w-4xl w-full p-6 sm:p-10 md:p-12 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto max-h-[90vh] flex flex-col ${
                 isClosingReorderModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
-              <div className="flex items-center gap-3.5 mb-5">
-                <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md shrink-0">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex items-center gap-4 mb-6 shrink-0">
+                <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md shrink-0">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">จัดเรียงตำแหน่งอุปกรณ์</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">เลือกอุปกรณ์เพื่อเลื่อนขึ้นหรือลง หรือจัดเรียงด่วนตามเงื่อนไข</p>
+                  <h3 className="text-xl sm:text-3xl font-extrabold text-slate-900">จัดเรียงตำแหน่งอุปกรณ์</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">เลือกอุปกรณ์เพื่อเลื่อนขึ้นหรือลง หรือจัดเรียงด่วนตามเงื่อนไข</p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 mb-4 pb-4 border-b border-slate-200">
-                <span className="text-[11px] font-bold text-slate-400 uppercase mr-1">จัดเรียงด่วน:</span>
+              <div className="flex flex-wrap items-center gap-2 mb-5 pb-5 border-b border-slate-200 shrink-0">
+                <span className="text-xs font-bold text-slate-400 uppercase mr-1">จัดเรียงด่วน:</span>
                 <button
                   type="button"
                   onClick={() => handleQuickSort('battery_desc')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
                 >
                   แบตเตอรี่ (มาก ➔ น้อย)
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickSort('battery_asc')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
                 >
                   แบตเตอรี่ (น้อย ➔ มาก)
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickSort('name')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
                 >
                   ตามชื่อ (ก-ฮ)
                 </button>
               </div>
 
-              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 mb-6">
+              <div className="space-y-3 max-h-[50vh] sm:max-h-[55vh] overflow-y-auto pr-2 mb-8 flex-1">
                 {reorderList.map((d, i) => (
-                  <div key={d.id} className="flex items-center justify-between bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 transition-all hover:border-slate-300">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="w-7 h-7 bg-white text-slate-700 font-bold font-mono text-xs rounded-lg border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
+                  <div key={d.id} className="flex items-center justify-between bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200/80 transition-all hover:border-slate-300 hover:bg-white hover:shadow-sm">
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                      <span className="w-8 h-8 bg-white text-slate-800 font-extrabold font-mono text-sm rounded-xl border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
                         {i + 1}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-bold text-sm sm:text-base text-slate-900 break-words">{d.name}</h4>
-                        <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">{d.platform} • แบต {d.batteryLevel}%</span>
+                        <h4 className="font-extrabold text-base sm:text-lg text-slate-900 break-words">{d.name}</h4>
+                        <span className="text-xs sm:text-sm font-semibold text-slate-500 uppercase">{d.platform} • แบต {d.batteryLevel}%</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
                       <button
                         type="button"
                         onClick={() => handleMoveDevice(i, -1)}
                         disabled={i === 0 || savingOrder}
-                        className="p-2 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white text-slate-700 rounded-xl border border-slate-200 shadow-xs transition-colors cursor-pointer"
+                        className="p-2.5 sm:p-3 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white text-slate-700 rounded-xl border border-slate-200 shadow-2xs transition-colors cursor-pointer"
                         title="เลื่อนขึ้น"
                       >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
                         </svg>
                       </button>
@@ -1596,10 +1596,10 @@ export default function BatteryDashboard() {
                         type="button"
                         onClick={() => handleMoveDevice(i, 1)}
                         disabled={i === reorderList.length - 1 || savingOrder}
-                        className="p-2 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white text-slate-700 rounded-xl border border-slate-200 shadow-xs transition-colors cursor-pointer"
+                        className="p-2.5 sm:p-3 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white text-slate-700 rounded-xl border border-slate-200 shadow-2xs transition-colors cursor-pointer"
                         title="เลื่อนลง"
                       >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
@@ -1608,12 +1608,12 @@ export default function BatteryDashboard() {
                 ))}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4 shrink-0 pt-2">
                 <button
                   type="button"
                   onClick={handleCloseReorderModal}
                   disabled={savingOrder}
-                  className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+                  className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50"
                 >
                   ยกเลิก
                 </button>
@@ -1621,13 +1621,13 @@ export default function BatteryDashboard() {
                   type="button"
                   onClick={handleSaveOrder}
                   disabled={savingOrder}
-                  className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                  className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all shadow-md cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2.5"
                 >
                   {savingOrder ? (
                     <span>กำลังบันทึก...</span>
                   ) : (
                     <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                       <span>บันทึกตำแหน่ง</span>
@@ -1648,25 +1648,25 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-lg sm:max-w-xl w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] max-w-xl sm:max-w-2xl w-full p-6 sm:p-10 md:p-12 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto ${
                 isClosingRenameModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
-              <div className="flex items-center gap-3.5 mb-6">
-                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center border border-indigo-200 shrink-0">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center border border-indigo-200 shrink-0 shadow-sm">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">เปลี่ยนชื่ออุปกรณ์</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">ระบุชื่อใหม่ที่ต้องการสำหรับอุปกรณ์นี้</p>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">เปลี่ยนชื่ออุปกรณ์</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">ระบุชื่อใหม่ที่ต้องการสำหรับอุปกรณ์นี้</p>
                 </div>
               </div>
 
-              <form onSubmit={handleConfirmRename} className="space-y-4">
+              <form onSubmit={handleConfirmRename} className="space-y-6">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-2 ml-1">
                     ชื่ออุปกรณ์ใหม่
                   </label>
                   <input
@@ -1676,30 +1676,30 @@ export default function BatteryDashboard() {
                     onChange={(e) => setRenameInput(e.target.value)}
                     disabled={renamingDevice}
                     placeholder="ระบุชื่ออุปกรณ์..."
-                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-300 focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-bold text-slate-900 bg-slate-50 focus:bg-white transition-colors shadow-inner"
+                    className="w-full px-5 py-4 sm:py-4.5 rounded-2xl border-2 border-slate-200 focus:outline-none focus:border-indigo-500 text-base sm:text-lg font-bold text-slate-900 bg-slate-50/80 focus:bg-white transition-all shadow-inner"
                     autoFocus
                   />
                 </div>
 
-                <div className="pt-2 flex items-center gap-3">
+                <div className="pt-2 flex items-center gap-4">
                   <button
                     type="button"
                     onClick={handleCloseRenameModal}
                     disabled={renamingDevice}
-                    className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+                    className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50"
                   >
                     ยกเลิก
                   </button>
                   <button
                     type="submit"
                     disabled={renamingDevice}
-                    className="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                    className="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all shadow-md cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2.5"
                   >
                     {renamingDevice ? (
                       <span>กำลังบันทึก...</span>
                     ) : (
                       <>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
                         <span>บันทึกชื่อใหม่</span>
@@ -1721,33 +1721,33 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-lg sm:max-w-xl w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] max-w-xl sm:max-w-2xl w-full p-6 sm:p-10 md:p-12 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto ${
                 isClosingDeleteModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
-              <div className="flex items-center gap-3.5 mb-4">
-                <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center border border-rose-200 shrink-0">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center border border-rose-200 shrink-0 shadow-sm">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">ยืนยันการลบอุปกรณ์</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">ยืนยันการลบอุปกรณ์</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-6 text-xs sm:text-sm text-slate-600 space-y-1.5">
-                <p>ต้องการลบอุปกรณ์ <span className="font-bold text-slate-900">&quot;{deleteTarget.name}&quot;</span> ออกจากระบบหรือไม่?</p>
-                <p className="text-xs text-rose-600 font-medium">ประวัติสถานะแบตเตอรี่และกราฟทั้งหมดของอุปกรณ์นี้จะถูกลบถาวร</p>
+              <div className="bg-rose-50/60 p-5 sm:p-6 rounded-2xl border border-rose-200/80 mb-8 text-sm sm:text-base text-slate-700 space-y-2">
+                <p>ต้องการลบอุปกรณ์ <span className="font-extrabold text-slate-900">&quot;{deleteTarget.name}&quot;</span> ออกจากระบบหรือไม่?</p>
+                <p className="text-xs sm:text-sm text-rose-600 font-bold">ประวัติสถานะแบตเตอรี่และกราฟทั้งหมดของอุปกรณ์นี้จะถูกลบถาวร</p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <button
                   type="button"
                   onClick={handleCloseDeleteModal}
                   disabled={deletingDevice}
-                  className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+                  className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50"
                 >
                   ยกเลิก
                 </button>
@@ -1755,13 +1755,13 @@ export default function BatteryDashboard() {
                   type="button"
                   onClick={handleConfirmDelete}
                   disabled={deletingDevice}
-                  className="w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                  className="w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all shadow-md cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2.5"
                 >
                   {deletingDevice ? (
                     <span>กำลังลบ...</span>
                   ) : (
                     <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                       <span>ยืนยันลบอุปกรณ์</span>
@@ -1783,13 +1783,13 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto transition-all duration-300 max-h-[90vh] flex flex-col ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] max-w-3xl sm:max-w-4xl lg:max-w-5xl w-full p-6 sm:p-10 md:p-14 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto transition-all duration-300 max-h-[92vh] flex flex-col ${
                 isClosingSettingsModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
               <button
                 onClick={handleCloseSettingsModal}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold text-lg p-1 transition-colors cursor-pointer"
+                className="absolute top-6 right-6 sm:top-8 sm:right-8 w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 rounded-full flex items-center justify-center font-bold text-lg transition-all cursor-pointer shadow-2xs z-10"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -1797,29 +1797,29 @@ export default function BatteryDashboard() {
               </button>
 
               {isSettingsUnlocked && (
-                <div className="flex items-center gap-3.5 mb-6 pb-4 border-b border-slate-100 shrink-0">
-                  <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md shrink-0">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex items-center gap-4 mb-6 pb-5 border-b border-slate-200 shrink-0">
+                  <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md shrink-0">
+                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-slate-900">ตั้งค่าระบบแบบครบวงจร</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">ปรับแต่งการแจ้งเตือน ตรรกะเวลา และข้อความบอต Telegram</p>
+                    <h3 className="text-xl sm:text-3xl font-extrabold text-slate-900">ตั้งค่าระบบแบบครบวงจร</h3>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">ปรับแต่งการแจ้งเตือน ตรรกะเวลา และข้อความบอต Telegram</p>
                   </div>
                 </div>
               )}
 
               {!isSettingsUnlocked ? (
-                <div className="py-16 px-6 text-center max-w-md mx-auto animate-fadeIn flex-1 flex flex-col justify-center">
-                  <div className="w-20 h-20 bg-slate-900 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="py-16 px-6 text-center max-w-lg mx-auto animate-fadeIn flex-1 flex flex-col justify-center">
+                  <div className="w-24 h-24 bg-slate-900 text-emerald-400 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl border border-slate-800">
+                    <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">ยืนยันรหัสผ่านเพื่อเข้าสู่การตั้งค่า</h3>
-                  <p className="text-xs sm:text-sm text-slate-500 mb-8">เพื่อความปลอดภัย กรุณากรอกรหัสผ่านแดชบอร์ดของคุณก่อนเข้าปรับแต่งระบบ</p>
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2.5">ยืนยันรหัสผ่านเพื่อเข้าสู่การตั้งค่า</h3>
+                  <p className="text-sm sm:text-base text-slate-500 mb-10 font-medium">เพื่อความปลอดภัย กรุณากรอกรหัสผ่านแดชบอร์ดของคุณก่อนเข้าปรับแต่งระบบ</p>
 
                   <form
                     onSubmit={async (e) => {
@@ -1850,7 +1850,7 @@ export default function BatteryDashboard() {
                         setUnlockingSettings(false);
                       }
                     }}
-                    className="space-y-4"
+                    className="space-y-6"
                   >
                     <div>
                       <input
@@ -1861,25 +1861,25 @@ export default function BatteryDashboard() {
                           setSettingsUnlockError("");
                         }}
                         placeholder="กรอกรหัสผ่านแดชบอร์ด..."
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-center text-sm bg-slate-50 focus:bg-white transition-all shadow-inner font-semibold"
+                        className="w-full px-6 py-4 sm:py-5 rounded-2xl border-2 border-slate-200 focus:outline-none focus:border-emerald-500 text-center text-base sm:text-lg bg-slate-50/80 focus:bg-white transition-all shadow-inner font-mono font-bold"
                         autoFocus
                       />
                       {settingsUnlockError && (
-                        <p className="text-rose-500 text-xs font-bold mt-2 animate-bounce">{settingsUnlockError}</p>
+                        <p className="text-rose-600 text-xs sm:text-sm font-bold mt-2.5 animate-bounce">{settingsUnlockError}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 pt-2">
+                    <div className="flex items-center gap-4 pt-2">
                       <button
                         type="button"
                         onClick={handleCloseSettingsModal}
-                        className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+                        className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all cursor-pointer"
                       >
                         ยกเลิก
                       </button>
                       <button
                         type="submit"
                         disabled={unlockingSettings}
-                        className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2.5"
                       >
                         {unlockingSettings ? <span>กำลังตรวจสอบ...</span> : <span>ปลดล็อกการตั้งค่า</span>}
                       </button>
@@ -2630,13 +2630,13 @@ export default function BatteryDashboard() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white rounded-3xl ${createdResult ? "max-w-3xl" : "max-w-xl md:max-w-2xl"} w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto transition-all duration-300 ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] ${createdResult ? "max-w-3xl sm:max-w-4xl lg:max-w-5xl" : "max-w-xl sm:max-w-2xl lg:max-w-3xl"} w-full p-6 sm:p-10 md:p-14 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto transition-all duration-300 max-h-[92vh] flex flex-col overflow-y-auto ${
                 isClosingModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
               <button
                 onClick={handleCloseModal}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold text-lg p-1 transition-colors cursor-pointer"
+                className="absolute top-6 right-6 sm:top-8 sm:right-8 w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 rounded-full flex items-center justify-center font-bold text-lg transition-all cursor-pointer shadow-2xs z-10"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -2644,26 +2644,26 @@ export default function BatteryDashboard() {
               </button>
 
               {createdResult ? (
-                <div className="space-y-6 animate-fadeIn">
-                  <div className="text-center pb-5 border-b border-slate-200 flex flex-col items-center">
-                    <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center mb-3.5 shadow-md">
-                      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="space-y-8 animate-fadeIn">
+                  <div className="text-center pb-6 border-b border-slate-200 flex flex-col items-center">
+                    <div className="w-16 h-16 bg-slate-900 text-white rounded-3xl flex items-center justify-center mb-4 shadow-md">
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <h3 className="font-bold text-slate-900 text-xl sm:text-2xl">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; เสร็จสมบูรณ์</h3>
-                    <p className="text-sm text-slate-500 mt-1 font-medium">นำค่าด้านล่างไปตั้งค่าใน MacroDroid หรือแอปพลิเคชันของคุณ</p>
+                    <h3 className="font-extrabold text-slate-900 text-2xl sm:text-3xl">ลงทะเบียนอุปกรณ์ &quot;{createdResult.name}&quot; เสร็จสมบูรณ์</h3>
+                    <p className="text-sm sm:text-base text-slate-500 mt-1 font-medium">นำค่าด้านล่างไปตั้งค่าใน MacroDroid หรือแอปพลิเคชันของคุณ</p>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/80 p-5 sm:p-6 rounded-2xl border border-slate-200/80">
                       <div className="min-w-0 flex-1">
-                        <span className="text-slate-500 block text-xs uppercase font-sans font-bold tracking-wider">รหัสเครื่อง</span>
-                        <span className="font-mono font-bold text-slate-900 text-base sm:text-lg mt-1 block break-all">{createdResult.id}</span>
+                        <span className="text-slate-500 block text-xs sm:text-sm uppercase font-sans font-bold tracking-wider">รหัสเครื่อง</span>
+                        <span className="font-mono font-extrabold text-slate-900 text-lg sm:text-xl mt-1 block break-all">{createdResult.id}</span>
                       </div>
                       <button
                         onClick={() => copyToClipboard(createdResult.id, "รหัสเครื่อง")}
-                        className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold font-sans text-xs sm:text-sm cursor-pointer transition-colors shadow-sm shrink-0"
+                        className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold font-sans text-xs sm:text-sm cursor-pointer transition-all shadow-md shrink-0"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -2672,14 +2672,14 @@ export default function BatteryDashboard() {
                       </button>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/80 p-5 sm:p-6 rounded-2xl border border-slate-200/80">
                       <div className="min-w-0 flex-1">
-                        <span className="text-slate-500 block text-xs uppercase font-sans font-bold tracking-wider">รหัสลับ API</span>
-                        <span className="font-mono font-bold text-slate-900 text-base sm:text-lg mt-1 block break-all">{createdResult.apiKey}</span>
+                        <span className="text-slate-500 block text-xs sm:text-sm uppercase font-sans font-bold tracking-wider">รหัสลับ API</span>
+                        <span className="font-mono font-extrabold text-slate-900 text-lg sm:text-xl mt-1 block break-all">{createdResult.apiKey}</span>
                       </div>
                       <button
                         onClick={() => copyToClipboard(createdResult.apiKey, "รหัสลับ API")}
-                        className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold font-sans text-xs sm:text-sm cursor-pointer transition-colors shadow-sm shrink-0"
+                        className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold font-sans text-xs sm:text-sm cursor-pointer transition-all shadow-md shrink-0"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -2689,20 +2689,20 @@ export default function BatteryDashboard() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 text-slate-200 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm font-mono space-y-2 shadow-inner">
+                  <div className="bg-slate-900 text-slate-200 p-5 sm:p-6 rounded-2xl text-xs sm:text-sm font-mono space-y-3 shadow-inner border border-slate-800">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className="text-slate-400 block text-xs font-sans font-bold uppercase tracking-wider">ตัวอย่าง JSON สำหรับ MACRODROID / POST BODY</span>
                       <button
                         onClick={() => copyToClipboard(`{"deviceId":"${createdResult.id}","apiKey":"${createdResult.apiKey}","batteryLevel":[battery],"isCharging":true/false}`, "ตัวอย่าง JSON")}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold font-sans transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer border border-slate-700 shadow-xs"
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold font-sans transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer border border-slate-700 shadow-2xs"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                         <span>คัดลอก JSON</span>
                       </button>
                     </div>
-                    <pre className="whitespace-pre-wrap break-all text-emerald-400 font-semibold pt-2 text-xs sm:text-sm leading-relaxed">
+                    <pre className="whitespace-pre-wrap break-all text-emerald-400 font-bold pt-2 text-sm sm:text-base leading-relaxed">
 {`{
   "deviceId": "${createdResult.id}",
   "apiKey": "${createdResult.apiKey}",
@@ -2714,25 +2714,28 @@ export default function BatteryDashboard() {
 
                   <button
                     onClick={handleCloseModal}
-                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 rounded-2xl text-sm sm:text-base transition-colors cursor-pointer mt-2 border border-slate-300 shadow-sm"
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold py-4 sm:py-5 rounded-2xl text-base sm:text-lg transition-all cursor-pointer mt-4 border border-slate-300/80 shadow-sm"
                   >
                     ปิดหน้าต่างและกลับสู่แดชบอร์ด
                   </button>
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center border border-slate-200 shrink-0">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md shrink-0">
+                      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                       </svg>
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900">ลงทะเบียนอุปกรณ์ใหม่</h2>
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">ลงทะเบียนอุปกรณ์ใหม่</h2>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">สร้างรหัส ID และ API Key สำหรับเชื่อมต่อและส่งข้อมูล</p>
+                    </div>
                   </div>
 
-                  <form onSubmit={handleCreateDevice} className="space-y-4">
+                  <form onSubmit={handleCreateDevice} className="space-y-6">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-2 ml-1">
                         ชื่ออุปกรณ์
                       </label>
                       <input
@@ -2741,19 +2744,19 @@ export default function BatteryDashboard() {
                         placeholder="ระบุชื่ออุปกรณ์..."
                         value={newDeviceName}
                         onChange={(e) => setNewDeviceName(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white"
+                        className="w-full px-5 py-4 sm:py-4.5 rounded-2xl border-2 border-slate-200 focus:outline-none focus:border-emerald-500 text-base sm:text-lg font-bold text-slate-900 bg-slate-50/80 focus:bg-white transition-all shadow-inner"
                         autoFocus
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-2 ml-1">
                         แพลตฟอร์ม / ระบบปฏิบัติการ
                       </label>
                       <select
                         value={newDevicePlatform}
                         onChange={(e) => setNewDevicePlatform(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-medium bg-slate-50 focus:bg-white"
+                        className="w-full px-5 py-4 sm:py-4.5 rounded-2xl border-2 border-slate-200 focus:outline-none focus:border-emerald-500 text-base sm:text-lg font-bold text-slate-900 bg-slate-50/80 focus:bg-white transition-all shadow-inner"
                       >
                         <option value="Android">Android (MacroDroid / Tasker)</option>
                         <option value="Windows">Windows (PC / Laptop)</option>
@@ -2764,24 +2767,24 @@ export default function BatteryDashboard() {
                       </select>
                     </div>
 
-                    <div className="pt-3 flex items-center gap-3">
+                    <div className="pt-4 flex items-center gap-4">
                       <button
                         type="button"
                         onClick={handleCloseModal}
-                        className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+                        className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all cursor-pointer"
                       >
                         ยกเลิก
                       </button>
                       <button
                         type="submit"
                         disabled={creatingDevice}
-                        className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                        className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 sm:py-4.5 rounded-2xl text-sm sm:text-base transition-all shadow-md cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2.5"
                       >
                         {creatingDevice ? (
                           <span>กำลังสร้างรหัส...</span>
                         ) : (
                           <>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                             </svg>
                             <span>สร้างและรับรหัส ID</span>
