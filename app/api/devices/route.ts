@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { getSystemSettings } from '@/lib/settings';
 import type { Device, BatteryLog } from '@prisma/client';
 
 type DeviceWithLogs = Device & {
@@ -16,8 +17,9 @@ export async function GET() {
     startOfToday.setHours(0, 0, 0, 0);
     const now = new Date();
 
-    const setting = await prisma.setting.findUnique({ where: { key: 'api_secret_key' } });
-    const systemApiKey = setting?.value || process.env.API_SECRET_KEY || 'secret_batt_2026';
+    const sysSettings = await getSystemSettings();
+    const systemApiKey = sysSettings.api_secret_key || process.env.API_SECRET_KEY || 'secret_batt_2026';
+    const offlineThreshold = Number(sysSettings.offline_threshold_minutes) || 60;
 
     const devices = (await prisma.device.findMany({
       orderBy: [
@@ -153,7 +155,7 @@ export async function GET() {
       }
 
       const timeSinceUpdateMinutes = (now.getTime() - device.updatedAt.getTime()) / (1000 * 60);
-      const isOffline = timeSinceUpdateMinutes > 60;
+      const isOffline = timeSinceUpdateMinutes > offlineThreshold;
       const offlineDurationMinutes = isOffline ? Math.round(timeSinceUpdateMinutes) : undefined;
       const offlineSince = isOffline ? device.updatedAt.toISOString() : undefined;
 
@@ -232,8 +234,8 @@ export async function POST(request: Request) {
       },
     });
 
-    const setting = await prisma.setting.findUnique({ where: { key: 'api_secret_key' } });
-    const apiKey = setting?.value || process.env.API_SECRET_KEY || 'secret_batt_2026';
+    const sysSettings = await getSystemSettings();
+    const apiKey = sysSettings.api_secret_key || process.env.API_SECRET_KEY || 'secret_batt_2026';
 
     return NextResponse.json({ success: true, device: newDevice, apiKey }, { status: 201 });
   } catch (error: unknown) {

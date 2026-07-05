@@ -727,6 +727,15 @@ export default function BatteryDashboard() {
   const [confirmPasswordInput, setConfirmPasswordInput] = useState<string>("");
   const [changingPassword, setChangingPassword] = useState<boolean>(false);
 
+  // Settings Modal State
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [isClosingSettingsModal, setIsClosingSettingsModal] = useState<boolean>(false);
+  const [settingsTab, setSettingsTab] = useState<'telegram' | 'logic' | 'templates' | 'security'>('telegram');
+  const [settingsData, setSettingsData] = useState<Record<string, string>>({});
+  const [loadingSettings, setLoadingSettings] = useState<boolean>(false);
+  const [savingSettings, setSavingSettings] = useState<boolean>(false);
+  const [testingTelegram, setTestingTelegram] = useState<boolean>(false);
+
   // Toast System
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -1129,6 +1138,84 @@ export default function BatteryDashboard() {
     showToast(`คัดลอก ${label} แล้ว`, "success");
   };
 
+  const fetchSettings = useCallback(async () => {
+    setLoadingSettings(true);
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setSettingsData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings:', err);
+      showToast('ไม่สามารถโหลดข้อมูลตั้งค่าได้', 'error');
+    } finally {
+      setLoadingSettings(false);
+    }
+  }, [showToast]);
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsData),
+      });
+      if (res.ok) {
+        showToast('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว', 'success');
+        handleCloseSettingsModal();
+        fetchDevices(true);
+      } else {
+        const err = await res.json();
+        showToast(err?.error || 'ไม่สามารถบันทึกการตั้งค่าได้', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    if (!settingsData.telegram_bot_token || !settingsData.telegram_chat_id) {
+      showToast('กรุณาระบุ Bot Token และ Chat ID ก่อนทดสอบ', 'error');
+      return;
+    }
+    setTestingTelegram(true);
+    try {
+      const res = await fetch('/api/settings/test-telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: settingsData.telegram_bot_token,
+          chatId: settingsData.telegram_chat_id,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'ส่งข้อความทดสอบสำเร็จแล้ว!', 'success');
+      } else {
+        showToast(data?.error || 'ส่งข้อความไม่สำเร็จ', 'error');
+      }
+    } catch (err) {
+      console.error('Failed test telegram:', err);
+      showToast('เกิดข้อผิดพลาดในการส่งข้อความทดสอบ', 'error');
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
+
+  const handleCloseSettingsModal = () => {
+    setIsClosingSettingsModal(true);
+    setTimeout(() => {
+      setShowSettingsModal(false);
+      setIsClosingSettingsModal(false);
+    }, 200);
+  };
+
   if (authChecking) {
     return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-400 font-medium">กำลังโหลด...</div>;
   }
@@ -1250,6 +1337,17 @@ export default function BatteryDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
                 <span>เปลี่ยนรหัสผ่าน</span>
+              </button>
+              <button
+                onClick={() => { setShowSettingsModal(true); setIsClosingSettingsModal(false); fetchSettings(); }}
+                className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-5 py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+                title="ตั้งค่าระบบครบวงจร (Telegram Bot, ตรรกะแจ้งเตือน, ข้อความบอต)"
+              >
+                <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>ตั้งค่าระบบ</span>
               </button>
             </div>
           </div>
@@ -1619,6 +1717,360 @@ export default function BatteryDashboard() {
           </div>
         )}
 
+        {showSettingsModal && (
+          <div
+            onClick={handleCloseSettingsModal}
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+              isClosingSettingsModal ? "animate-fade-out" : "animate-fade-in"
+            }`}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 md:p-10 border border-slate-200 shadow-2xl relative my-auto transition-all duration-300 max-h-[90vh] flex flex-col ${
+                isClosingSettingsModal ? "animate-modal-out" : "animate-modal-in"
+              }`}
+            >
+              <button
+                onClick={handleCloseSettingsModal}
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold text-lg p-1 transition-colors cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="flex items-center gap-3.5 mb-6 pb-4 border-b border-slate-100 shrink-0">
+                <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md shrink-0">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">ตั้งค่าระบบแบบครบวงจร</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">ปรับแต่งการแจ้งเตือน ตรรกะเวลา และข้อความบอต Telegram</p>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-100 pb-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('telegram')}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    settingsTab === 'telegram'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                  }`}
+                >
+                  <span>🤖 Telegram Bot</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('logic')}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    settingsTab === 'logic'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                  }`}
+                >
+                  <span>⚙️ ตรรกะระบบ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('templates')}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    settingsTab === 'templates'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                  }`}
+                >
+                  <span>💬 รูปแบบข้อความ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('security')}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    settingsTab === 'security'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                  }`}
+                >
+                  <span>🔐 ความปลอดภัย</span>
+                </button>
+              </div>
+
+              {loadingSettings ? (
+                <div className="py-20 text-center text-slate-400 font-medium">กำลังโหลดข้อมูลตั้งค่า...</div>
+              ) : (
+                <form onSubmit={handleSaveSettings} className="space-y-6 overflow-y-auto pr-1 flex-1">
+                  {settingsTab === 'telegram' && (
+                    <div className="space-y-4 animate-fadeIn">
+                      <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 text-xs text-emerald-800 leading-relaxed mb-4">
+                        <p className="font-bold mb-1">📌 คำแนะนำการตั้งค่า Telegram Bot:</p>
+                        1. สร้างบอตผ่าน @BotFather ใน Telegram แล้วคัดลอก <b>Bot Token</b><br />
+                        2. ดึง <b>Chat ID</b> (ID ส่วนตัวหรือกลุ่ม) ผ่าน @userinfobot หรือ API<br />
+                        3. สามารถกดปุ่ม &quot;ทดสอบส่งข้อความ&quot; ด้านล่างเพื่อตรวจสอบความถูกต้องได้ทันที
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                          สถานะการแจ้งเตือน Telegram
+                        </label>
+                        <select
+                          value={settingsData.telegram_enabled || 'true'}
+                          onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_enabled: e.target.value }))}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-semibold bg-slate-50 focus:bg-white transition-colors"
+                        >
+                          <option value="true">🟢 เปิดใช้งาน (ส่งแจ้งเตือนปกติ)</option>
+                          <option value="false">🔴 ปิดใช้งาน (ไม่ส่งแจ้งเตือน)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                          Telegram Bot Token
+                        </label>
+                        <input
+                          type="text"
+                          value={settingsData.telegram_bot_token || ''}
+                          onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_bot_token: e.target.value }))}
+                          placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                          Telegram Chat ID
+                        </label>
+                        <input
+                          type="text"
+                          value={settingsData.telegram_chat_id || ''}
+                          onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_chat_id: e.target.value }))}
+                          placeholder="เช่น 12345678 หรือ -100123456789"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                        />
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={handleTestTelegram}
+                          disabled={testingTelegram}
+                          className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer border border-slate-300 shadow-2xs inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {testingTelegram ? (
+                            <span>กำลังส่งข้อความทดสอบ...</span>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                              </svg>
+                              <span>ทดสอบส่งข้อความแจ้งเตือน (Test Notification)</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsTab === 'logic' && (
+                    <div className="space-y-5 animate-fadeIn">
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed">
+                        <p className="font-bold text-slate-800 mb-1">⚙️ การตั้งค่าเงื่อนไขเวลาและระดับแบตเตอรี่:</p>
+                        เมื่ออุปกรณ์อัปเดตสถานะหรือขาดการติดต่อ ระบบจะตรวจสอบเกณฑ์เหล่านี้เพื่อให้แจ้งเตือนได้อย่างแม่นยำตามที่คุณต้องการ
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                          เกณฑ์เวลาขาดการติดต่อ (นาที)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="1440"
+                          value={settingsData.offline_threshold_minutes || '60'}
+                          onChange={(e) => setSettingsData((prev) => ({ ...prev, offline_threshold_minutes: e.target.value }))}
+                          placeholder="60"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">หากไม่มีข้อมูลส่งมานานกว่ากำหนด ระบบจะแสดงสถานะ &quot;ขาดการติดต่อ&quot; และแจ้งเตือนเมื่อกลับมาออนไลน์</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                          เกณฑ์แจ้งเตือนแบตเตอรี่ใกล้เต็ม (%) (คั่นด้วยเครื่องหมายจุลภาค ,)
+                        </label>
+                        <input
+                          type="text"
+                          value={settingsData.alert_near_full_levels || '80, 90, 95'}
+                          onChange={(e) => setSettingsData((prev) => ({ ...prev, alert_near_full_levels: e.target.value }))}
+                          placeholder="80, 90, 95"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">ตัวอย่าง: 80, 90, 95 (ระบบจะแจ้งเตือนเมื่อชาร์จถึงระดับที่กำหนด)</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                          เกณฑ์แจ้งเตือนแบตเตอรี่ต่ำ (%) (คั่นด้วยเครื่องหมายจุลภาค ,)
+                        </label>
+                        <input
+                          type="text"
+                          value={settingsData.alert_low_battery_levels || '20, 15, 10, 5, 0'}
+                          onChange={(e) => setSettingsData((prev) => ({ ...prev, alert_low_battery_levels: e.target.value }))}
+                          placeholder="20, 15, 10, 5, 0"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">ตัวอย่าง: 20, 15, 10, 5, 0 (ระบบจะแจ้งเตือนเมื่อแบตลดถึงระดับที่กำหนด)</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsTab === 'templates' && (
+                    <div className="space-y-4 animate-fadeIn">
+                      <div className="bg-sky-50 p-3.5 rounded-2xl border border-sky-100 text-xs text-sky-800 leading-relaxed">
+                        <p className="font-bold mb-1">💡 คำแนะนำตัวแปรในข้อความ (Variables):</p>
+                        คุณสามารถใช้ตัวแปรดังต่อไปนี้ในข้อความแจ้งเตือน:<br />
+                        <code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{device}"}</code> = ชื่ออุปกรณ์ | <code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{battery}"}</code> = ระดับแบตเตอรี่ (%) | <code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{time}"}</code> = เวลาอัปเดต | <code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{duration}"}</code> = ระยะเวลาที่ขาดการติดต่อ
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            1. เริ่มเสียบสายชาร์จ
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={settingsData.msg_template_plugged_in || ''}
+                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_plugged_in: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            2. ถอดสายชาร์จ
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={settingsData.msg_template_unplugged || ''}
+                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_unplugged: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            3. ชาร์จเต็ม 100%
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={settingsData.msg_template_full_charge || ''}
+                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_full_charge: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            4. แบตเตอรี่ใกล้เต็ม (80-95%)
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={settingsData.msg_template_near_full || ''}
+                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_near_full: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            5. แบตเตอรี่ต่ำ (5-20%)
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={settingsData.msg_template_low_battery || ''}
+                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_low_battery: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            6. แบตเตอรี่หมดวิกฤต (0%)
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={settingsData.msg_template_battery_empty || ''}
+                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_battery_empty: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            7. กลับมาเชื่อมต่อระบบ (หลังขาดการติดต่อ)
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={settingsData.msg_template_reconnected || ''}
+                            onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_reconnected: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsTab === 'security' && (
+                    <div className="space-y-4 animate-fadeIn">
+                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200/80 text-xs text-amber-900 leading-relaxed mb-4">
+                        <p className="font-bold mb-1">⚠️ คำเตือนความปลอดภัย:</p>
+                        หากเปลี่ยน <b>API Secret Key</b> อุปกรณ์ทั้งหมดที่เชื่อมต่ออยู่ (MacroDroid / Tasker) ต้องอัปเดตรหัสคีย์ใหม่ในสคริปต์ มิฉะนั้นจะไม่สามารถส่งข้อมูลเข้ามาได้
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                          API Secret Key (สำหรับส่งข้อมูลจาก MacroDroid / IoT)
+                        </label>
+                        <input
+                          type="text"
+                          value={settingsData.api_secret_key || ''}
+                          onChange={(e) => setSettingsData((prev) => ({ ...prev, api_secret_key: e.target.value }))}
+                          placeholder="secret_batt_2026"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-slate-100 flex items-center gap-3 mt-6 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCloseSettingsModal}
+                      disabled={savingSettings}
+                      className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingSettings}
+                      className="w-1/2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                    >
+                      {savingSettings ? (
+                        <span>กำลังบันทึกข้อมูล...</span>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>บันทึกการตั้งค่าระบบ</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
         {showAddModal && (
           <div
             onClick={handleCloseModal}
