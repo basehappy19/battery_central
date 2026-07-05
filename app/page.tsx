@@ -1342,7 +1342,7 @@ export default function BatteryDashboard() {
                   placeholder="ระบุรหัสผ่านแดชบอร์ด..."
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-14 pr-5 py-5 sm:py-6 rounded-2xl sm:rounded-3xl border-2 border-slate-200 bg-slate-50/80 text-slate-900 placeholder-slate-400 text-lg sm:text-xl font-mono font-medium focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/15 transition-all shadow-inner"
+                  className="w-full pl-14 pr-5 py-5 sm:py-6 rounded-2xl sm:rounded-3xl border-2 border-slate-200 bg-slate-50/80 text-slate-900 placeholder-slate-400 text-lg sm:text-xl font-sans font-medium focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/15 transition-all shadow-inner"
                   autoFocus
                 />
               </div>
@@ -1521,13 +1521,13 @@ export default function BatteryDashboard() {
         {showReorderModal && (
           <div
             onClick={handleCloseReorderModal}
-            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-0 sm:p-4 md:p-6 z-50 overflow-y-auto ${
               isClosingReorderModal ? "animate-fade-out" : "animate-fade-in"
             }`}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] max-w-2xl sm:max-w-3xl lg:max-w-4xl w-full p-6 sm:p-10 md:p-12 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto max-h-[90vh] flex flex-col ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-none sm:rounded-3xl md:rounded-[2.5rem] max-w-none sm:max-w-2xl md:sm:max-w-3xl lg:max-w-4xl w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[90vh] p-6 sm:p-10 md:p-12 border-0 sm:border border-slate-200/80 shadow-none sm:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-0 sm:my-auto flex flex-col justify-center ${
                 isClosingReorderModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -1642,13 +1642,13 @@ export default function BatteryDashboard() {
         {renameTarget && (
           <div
             onClick={handleCloseRenameModal}
-            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-0 sm:p-4 md:p-6 z-50 overflow-y-auto ${
               isClosingRenameModal ? "animate-fade-out" : "animate-fade-in"
             }`}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] max-w-xl sm:max-w-2xl w-full p-6 sm:p-10 md:p-12 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-none sm:rounded-3xl md:rounded-[2.5rem] max-w-none sm:max-w-xl md:max-w-2xl w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[90vh] p-6 sm:p-10 md:p-12 border-0 sm:border border-slate-200/80 shadow-none sm:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-0 sm:my-auto flex flex-col justify-center ${
                 isClosingRenameModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -1715,13 +1715,13 @@ export default function BatteryDashboard() {
         {deleteTarget && (
           <div
             onClick={handleCloseDeleteModal}
-            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-0 sm:p-4 md:p-6 z-50 overflow-y-auto ${
               isClosingDeleteModal ? "animate-fade-out" : "animate-fade-in"
             }`}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] max-w-xl sm:max-w-2xl w-full p-6 sm:p-10 md:p-12 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-none sm:rounded-3xl md:rounded-[2.5rem] max-w-none sm:max-w-xl md:max-w-2xl w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[90vh] p-6 sm:p-10 md:p-12 border-0 sm:border border-slate-200/80 shadow-none sm:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-0 sm:my-auto flex flex-col justify-center ${
                 isClosingDeleteModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -1777,13 +1777,13 @@ export default function BatteryDashboard() {
         {showSettingsModal && (
           <div
             onClick={handleCloseSettingsModal}
-            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-0 sm:p-4 md:p-6 z-50 overflow-y-auto ${
               isClosingSettingsModal ? "animate-fade-out" : "animate-fade-in"
             }`}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] max-w-3xl sm:max-w-4xl lg:max-w-5xl w-full p-6 sm:p-10 md:p-14 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto transition-all duration-300 max-h-[92vh] flex flex-col ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-none sm:rounded-3xl md:rounded-[2.5rem] max-w-none sm:max-w-3xl md:max-w-4xl lg:max-w-5xl w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[92vh] p-6 sm:p-10 md:p-14 border-0 sm:border border-slate-200/80 shadow-none sm:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-0 sm:my-auto transition-all duration-300 flex flex-col ${
                 isClosingSettingsModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
@@ -1861,7 +1861,7 @@ export default function BatteryDashboard() {
                           setSettingsUnlockError("");
                         }}
                         placeholder="กรอกรหัสผ่านแดชบอร์ด..."
-                        className="w-full px-6 py-4 sm:py-5 rounded-2xl border-2 border-slate-200 focus:outline-none focus:border-emerald-500 text-center text-base sm:text-lg bg-slate-50/80 focus:bg-white transition-all shadow-inner font-mono font-bold"
+                        className="w-full px-6 py-4 sm:py-5 rounded-2xl border-2 border-slate-200 focus:outline-none focus:border-emerald-500 text-center text-base sm:text-lg bg-slate-50/80 focus:bg-white transition-all shadow-inner font-sans font-bold"
                         autoFocus
                       />
                       {settingsUnlockError && (
@@ -1973,7 +1973,7 @@ export default function BatteryDashboard() {
                               value={settingsData.telegram_bot_token || ''}
                               onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_bot_token: e.target.value }))}
                               placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-sans bg-slate-50 focus:bg-white transition-colors"
                             />
                           </div>
 
@@ -1986,7 +1986,7 @@ export default function BatteryDashboard() {
                               value={settingsData.telegram_chat_id || ''}
                               onChange={(e) => setSettingsData((prev) => ({ ...prev, telegram_chat_id: e.target.value }))}
                               placeholder="เช่น 12345678 หรือ -100123456789"
-                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-sans bg-slate-50 focus:bg-white transition-colors"
                             />
                           </div>
 
@@ -2025,7 +2025,7 @@ export default function BatteryDashboard() {
                               value={settingsData.offline_threshold_minutes || '60'}
                               onChange={(e) => setSettingsData((prev) => ({ ...prev, offline_threshold_minutes: e.target.value }))}
                               placeholder="60"
-                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-sans bg-slate-50 focus:bg-white transition-colors"
                             />
                             <p className="text-[11px] text-slate-400 mt-1">หากไม่มีข้อมูลส่งมานานกว่ากำหนด ระบบจะแสดงสถานะ &quot;ขาดการติดต่อ&quot; และแจ้งเตือนเมื่อกลับมาออนไลน์</p>
                           </div>
@@ -2100,7 +2100,7 @@ export default function BatteryDashboard() {
                                     }
                                   }
                                 }}
-                                className="w-36 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-mono bg-white focus:outline-none focus:border-emerald-500"
+                                className="w-36 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-sans bg-white focus:outline-none focus:border-emerald-500"
                               />
                               <button
                                 type="button"
@@ -2199,7 +2199,7 @@ export default function BatteryDashboard() {
                                     }
                                   }
                                 }}
-                                className="w-36 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-mono bg-white focus:outline-none focus:border-emerald-500"
+                                className="w-36 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-sans bg-white focus:outline-none focus:border-emerald-500"
                               />
                               <button
                                 type="button"
@@ -2278,7 +2278,7 @@ export default function BatteryDashboard() {
                                 disabled={settingsData.enable_msg_plugged_in === 'false'}
                                 value={settingsData.msg_template_plugged_in || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_plugged_in: e.target.value }))}
-                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-sans transition-colors focus:outline-none focus:border-emerald-500 ${
                                   settingsData.enable_msg_plugged_in === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
                                 }`}
                               />
@@ -2313,7 +2313,7 @@ export default function BatteryDashboard() {
                                 disabled={settingsData.enable_msg_unplugged === 'false'}
                                 value={settingsData.msg_template_unplugged || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_unplugged: e.target.value }))}
-                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-sans transition-colors focus:outline-none focus:border-emerald-500 ${
                                   settingsData.enable_msg_unplugged === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
                                 }`}
                               />
@@ -2348,7 +2348,7 @@ export default function BatteryDashboard() {
                                 disabled={settingsData.enable_msg_full_charge === 'false'}
                                 value={settingsData.msg_template_full_charge || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_full_charge: e.target.value }))}
-                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-sans transition-colors focus:outline-none focus:border-emerald-500 ${
                                   settingsData.enable_msg_full_charge === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
                                 }`}
                               />
@@ -2383,7 +2383,7 @@ export default function BatteryDashboard() {
                                 disabled={settingsData.enable_msg_near_full === 'false'}
                                 value={settingsData.msg_template_near_full || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_near_full: e.target.value }))}
-                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-sans transition-colors focus:outline-none focus:border-emerald-500 ${
                                   settingsData.enable_msg_near_full === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
                                 }`}
                               />
@@ -2418,7 +2418,7 @@ export default function BatteryDashboard() {
                                 disabled={settingsData.enable_msg_low_battery === 'false'}
                                 value={settingsData.msg_template_low_battery || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_low_battery: e.target.value }))}
-                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-sans transition-colors focus:outline-none focus:border-emerald-500 ${
                                   settingsData.enable_msg_low_battery === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
                                 }`}
                               />
@@ -2453,7 +2453,7 @@ export default function BatteryDashboard() {
                                 disabled={settingsData.enable_msg_battery_empty === 'false'}
                                 value={settingsData.msg_template_battery_empty || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_battery_empty: e.target.value }))}
-                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-sans transition-colors focus:outline-none focus:border-emerald-500 ${
                                   settingsData.enable_msg_battery_empty === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
                                 }`}
                               />
@@ -2488,7 +2488,7 @@ export default function BatteryDashboard() {
                                 disabled={settingsData.enable_msg_reconnected === 'false'}
                                 value={settingsData.msg_template_reconnected || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_reconnected: e.target.value }))}
-                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono transition-colors focus:outline-none focus:border-emerald-500 ${
+                                className={`w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-sans transition-colors focus:outline-none focus:border-emerald-500 ${
                                   settingsData.enable_msg_reconnected === 'false' ? 'bg-slate-100 text-slate-400 opacity-60' : 'bg-white'
                                 }`}
                               />
@@ -2581,7 +2581,7 @@ export default function BatteryDashboard() {
                                 value={settingsData.api_secret_key || ''}
                                 onChange={(e) => setSettingsData((prev) => ({ ...prev, api_secret_key: e.target.value }))}
                                 placeholder="secret_batt_2026"
-                                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-mono bg-slate-50 focus:bg-white transition-colors"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 text-sm font-sans bg-slate-50 focus:bg-white transition-colors"
                               />
                             </div>
                           </div>
@@ -2624,13 +2624,13 @@ export default function BatteryDashboard() {
         {showAddModal && (
           <div
             onClick={handleCloseModal}
-            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto ${
+            className={`fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-0 sm:p-4 md:p-6 z-50 overflow-y-auto ${
               isClosingModal ? "animate-fade-out" : "animate-fade-in"
             }`}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`bg-white/95 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] ${createdResult ? "max-w-3xl sm:max-w-4xl lg:max-w-5xl" : "max-w-xl sm:max-w-2xl lg:max-w-3xl"} w-full p-6 sm:p-10 md:p-14 border border-slate-200/80 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-auto transition-all duration-300 max-h-[92vh] flex flex-col overflow-y-auto ${
+              className={`bg-white/95 backdrop-blur-2xl rounded-none sm:rounded-3xl md:rounded-[2.5rem] ${createdResult ? "max-w-none sm:max-w-3xl md:max-w-4xl lg:max-w-5xl" : "max-w-none sm:max-w-xl md:max-w-2xl lg:max-w-3xl"} w-full min-h-screen sm:min-h-0 max-h-screen sm:max-h-[92vh] p-6 sm:p-10 md:p-14 border-0 sm:border border-slate-200/80 shadow-none sm:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.15)] relative my-0 sm:my-auto transition-all duration-300 flex flex-col overflow-y-auto ${
                 isClosingModal ? "animate-modal-out" : "animate-modal-in"
               }`}
             >
