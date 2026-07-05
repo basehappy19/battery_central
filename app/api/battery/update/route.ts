@@ -29,16 +29,71 @@ async function sendNotification(message: string): Promise<void> {
   }
 }
 
+function getChargingSummary(
+  currentBattery: number,
+  now: Date,
+  logs: BatteryLog[]
+): {
+  startTimeStr: string;
+  startLevel: number;
+  durationStr: string;
+  gainedStr: string;
+} | null {
+  if (!logs || logs.length === 0) return null;
+
+  let startLog: BatteryLog | null = null;
+  for (let j = 0; j < logs.length; j++) {
+    const l = logs[j];
+    if (l.eventType === 'PLUGGED_IN') {
+      startLog = l;
+      break;
+    } else if (!l.isCharging) {
+      if (j > 0) startLog = logs[j - 1];
+      break;
+    }
+  }
+  if (!startLog && logs.length > 0 && logs[logs.length - 1].isCharging) {
+    startLog = logs[logs.length - 1];
+  }
+
+  if (!startLog) return null;
+
+  const startLevel = startLog.batteryLevel;
+  const chargeGained = currentBattery - startLevel;
+  const diffMs = now.getTime() - new Date(startLog.createdAt).getTime();
+  const durationMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+
+  const hours = Math.floor(durationMinutes / 60);
+  const mins = durationMinutes % 60;
+  let durationStr = `${mins} นาที`;
+  if (hours > 0 && mins > 0) durationStr = `${hours} ชม. ${mins} นาที`;
+  else if (hours > 0 && mins === 0) durationStr = `${hours} ชม.`;
+
+  const startTimeStr = new Date(startLog.createdAt).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  const gainedStr = chargeGained > 0 ? `+${chargeGained}%` : `${chargeGained}%`;
+
+  return {
+    startTimeStr,
+    startLevel,
+    durationStr,
+    gainedStr,
+  };
+}
+
 function formatTelegramAlert(
   title: string,
   deviceName: string,
   statusText: string,
-  extraLabel?: string,
-  extraValue?: string,
+  details?: { label: string; value: string }[],
   nowDate?: Date
 ): string {
   const d = nowDate || new Date();
-  const timeStr = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + ' น.';
+  const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
   const dateStr = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const timestampStr = `${dateStr} | ${timeStr}`;
 
@@ -46,8 +101,10 @@ function formatTelegramAlert(
   msg += `----------------------------------------\n`;
   msg += `<b>อุปกรณ์:</b> <code>${deviceName}</code>\n`;
   msg += `<b>สถานะ:</b> ${statusText}\n`;
-  if (extraLabel && extraValue !== undefined) {
-    msg += `<b>${extraLabel}:</b> <b>${extraValue}</b>\n`;
+  if (details && details.length > 0) {
+    for (const item of details) {
+      msg += `<b>${item.label}:</b> <b>${item.value}</b>\n`;
+    }
   }
   msg += `----------------------------------------\n`;
   msg += `<i>เวลา: ${timestampStr}</i>`;
@@ -295,14 +352,21 @@ export async function POST(request: Request) {
     if (timeDiffMinutes > 15) {
       eventType = 'RECONNECTED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
-      await sendNotification(formatTelegramAlert('กลับมาเชื่อมต่อระบบ', deviceName, 'กลับมาออนไลน์', 'ขาดการติดต่อไป', `ประมาณ ${Math.round(timeDiffMinutes)} นาที`, now));
+      await sendNotification(formatTelegramAlert('กลับมาเชื่อมต่อระบบ', deviceName, 'กลับมาออนไลน์', [{ label: 'ขาดการติดต่อไป', value: `ประมาณ ${Math.round(timeDiffMinutes)} นาที` }], now));
     } else if (existingDevice.isCharging !== currentIsCharging) {
       eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
       if (currentIsCharging) {
-        await sendNotification(formatTelegramAlert('เสียบสายชาร์จ', deviceName, 'เริ่มเสียบสายชาร์จแล้ว', 'ระดับแบตเตอรี่', `${currentBattery}%`, now));
+        await sendNotification(formatTelegramAlert('เสียบสายชาร์จ', deviceName, 'เริ่มเสียบสายชาร์จแล้ว', [{ label: 'ระดับแบตเตอรี่', value: `${currentBattery}%` }], now));
       } else {
-        await sendNotification(formatTelegramAlert('ถอดสายชาร์จ', deviceName, 'ถอดสายชาร์จแล้ว', 'ระดับแบตเตอรี่', `${currentBattery}%`, now));
+        const summary = getChargingSummary(currentBattery, now, existingDevice.logs || []);
+        const details = [{ label: 'ระดับแบตเตอรี่', value: `${currentBattery}%` }];
+        if (summary) {
+          details.push({ label: 'ชาร์จตั้งแต่', value: `${summary.startTimeStr} (${summary.startLevel}%)` });
+          details.push({ label: 'ได้แบตเพิ่ม', value: summary.gainedStr });
+          details.push({ label: 'ใช้เวลาชาร์จ', value: summary.durationStr });
+        }
+        await sendNotification(formatTelegramAlert('ถอดสายชาร์จ', deviceName, 'ถอดสายชาร์จแล้ว', details, now));
       }
     } else if (currentIsCharging && existingDevice.batteryLevel < currentBattery) {
       const chargeThresholds = [80, 90, 95, 100];
@@ -313,9 +377,16 @@ export async function POST(request: Request) {
         eventType = crossedThreshold === 100 ? 'FULL_CHARGE' : 'NEAR_FULL';
         const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
         if (crossedThreshold === 100) {
-          await sendNotification(formatTelegramAlert('แบตเตอรี่ชาร์จเต็ม', deviceName, 'ชาร์จเต็ม 100% เรียบร้อยแล้ว', 'ระดับแบตเตอรี่', '100%', now));
+          const summary = getChargingSummary(currentBattery, now, existingDevice.logs || []);
+          const details = [{ label: 'ระดับแบตเตอรี่', value: '100%' }];
+          if (summary) {
+            details.push({ label: 'ชาร์จตั้งแต่', value: `${summary.startTimeStr} (${summary.startLevel}%)` });
+            details.push({ label: 'ได้แบตเพิ่ม', value: summary.gainedStr });
+            details.push({ label: 'ใช้เวลาชาร์จ', value: summary.durationStr });
+          }
+          await sendNotification(formatTelegramAlert('แบตเตอรี่ชาร์จเต็ม', deviceName, 'ชาร์จเต็ม 100% เรียบร้อยแล้ว', details, now));
         } else {
-          await sendNotification(formatTelegramAlert('แบตเตอรี่ใกล้เต็ม', deviceName, `ชาร์จถึงระดับแจ้งเตือน (${crossedThreshold}%)`, 'ระดับปัจจุบัน', `${currentBattery}%`, now));
+          await sendNotification(formatTelegramAlert('แบตเตอรี่ใกล้เต็ม', deviceName, `ชาร์จถึงระดับแจ้งเตือน (${crossedThreshold}%)`, [{ label: 'ระดับปัจจุบัน', value: `${currentBattery}%` }], now));
         }
       } else {
         eventType = 'LEVEL_UPDATE';
@@ -329,9 +400,9 @@ export async function POST(request: Request) {
         eventType = crossedThreshold === 0 ? 'BATTERY_EMPTY' : 'LOW_BATTERY';
         const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
         if (crossedThreshold === 0) {
-          await sendNotification(formatTelegramAlert('แบตเตอรี่หมดวิกฤต', deviceName, 'แบตเตอรี่เหลือ 0%', 'คำแนะนำ', 'อุปกรณ์อาจดับหรือหยุดทำงาน', now));
+          await sendNotification(formatTelegramAlert('แบตเตอรี่หมดวิกฤต', deviceName, 'แบตเตอรี่เหลือ 0%', [{ label: 'คำแนะนำ', value: 'อุปกรณ์อาจดับหรือหยุดทำงาน' }], now));
         } else {
-          await sendNotification(formatTelegramAlert('แบตเตอรี่ต่ำ', deviceName, `ลดต่ำกว่าจุดแจ้งเตือน (${crossedThreshold}%)`, 'เหลือแบตเตอรี่', `${currentBattery}%`, now));
+          await sendNotification(formatTelegramAlert('แบตเตอรี่ต่ำ', deviceName, `ลดต่ำกว่าจุดแจ้งเตือน (${crossedThreshold}%)`, [{ label: 'เหลือแบตเตอรี่', value: `${currentBattery}%` }], now));
         }
       } else {
         eventType = 'LEVEL_UPDATE';
