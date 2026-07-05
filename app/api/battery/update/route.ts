@@ -44,6 +44,10 @@ function getChargingSummary(
   let startLog: BatteryLog | null = null;
   for (let j = 0; j < logs.length; j++) {
     const l = logs[j];
+    if (l.eventType === 'FULL_CHARGE') {
+      // เมื่อสรุปการชาร์จตอนชาร์จเต็มไปแล้ว ในเซสชันนี้ไม่ต้องสรุปซ้ำอีกตอนถอด
+      return null;
+    }
     if (l.eventType === 'PLUGGED_IN') {
       startLog = l;
       break;
@@ -57,6 +61,7 @@ function getChargingSummary(
   }
 
   if (!startLog) return null;
+  if (currentBattery === 100 && startLog.batteryLevel === 100) return null;
 
   const startLevel = startLog.batteryLevel;
   const chargeGained = currentBattery - startLevel;

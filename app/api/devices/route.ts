@@ -85,18 +85,37 @@ export async function GET() {
             offlineSince = prevLog.createdAt.toISOString();
           }
         } else if (l.eventType === 'UNPLUGGED' || l.eventType === 'FULL_CHARGE') {
-          for (let j = i + 1; j < logs.length; j++) {
-            const prevLog = logs[j];
-            if (prevLog.eventType === 'PLUGGED_IN' || (!prevLog.isCharging && j > i + 1)) {
-              const startLog = prevLog.eventType === 'PLUGGED_IN' ? prevLog : logs[j - 1];
-              if (startLog && startLog.isCharging) {
-                startChargeTime = startLog.createdAt.toISOString();
-                startChargeLevel = startLog.batteryLevel;
-                chargeGained = l.batteryLevel - startLog.batteryLevel;
-                const diffMs = l.createdAt.getTime() - startLog.createdAt.getTime();
-                durationMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+          let alreadySummarizedFull = false;
+          if (l.eventType === 'UNPLUGGED') {
+            for (let j = i + 1; j < logs.length; j++) {
+              const prevLog = logs[j];
+              if (prevLog.eventType === 'FULL_CHARGE') {
+                alreadySummarizedFull = true;
+                break;
               }
-              break;
+              if (prevLog.eventType === 'PLUGGED_IN' || (!prevLog.isCharging && j > i + 1)) {
+                break;
+              }
+            }
+          }
+
+          if (!alreadySummarizedFull) {
+            for (let j = i + 1; j < logs.length; j++) {
+              const prevLog = logs[j];
+              if (prevLog.eventType === 'PLUGGED_IN' || (!prevLog.isCharging && j > i + 1)) {
+                const startLog = prevLog.eventType === 'PLUGGED_IN' ? prevLog : logs[j - 1];
+                if (startLog && startLog.isCharging) {
+                  const gained = l.batteryLevel - startLog.batteryLevel;
+                  if (gained !== 0 || l.batteryLevel < 100) {
+                    startChargeTime = startLog.createdAt.toISOString();
+                    startChargeLevel = startLog.batteryLevel;
+                    chargeGained = gained;
+                    const diffMs = l.createdAt.getTime() - startLog.createdAt.getTime();
+                    durationMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+                  }
+                }
+                break;
+              }
             }
           }
         }

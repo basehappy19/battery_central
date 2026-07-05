@@ -229,44 +229,41 @@ const CustomGraphTooltip = ({ active, payload }: any) => {
   const isCharging = pt.isCharging;
 
   return (
-    <div className="bg-white/95 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-xl text-xs min-w-[170px] animate-in fade-in zoom-in-95 duration-150 z-50">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
-        <span className="font-semibold text-slate-600">เวลา {pt.time}</span>
+    <div className="bg-slate-900/90 text-white backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700/80 shadow-2xl text-xs min-w-[155px] animate-in fade-in zoom-in-95 duration-150 pointer-events-none z-50">
+      <div className="flex items-center justify-between gap-3 mb-1.5">
+        <span className="text-[11px] font-medium text-slate-300">{pt.time}</span>
         {pt.diff !== 0 && pt.diff !== undefined && (
-          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-            pt.diff > 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+            pt.diff > 0 ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
           }`}>
             {pt.diff > 0 ? `+${pt.diff}%` : `${pt.diff}%`}
           </span>
         )}
       </div>
-      <div className="flex items-baseline justify-between gap-3 mb-2.5">
-        <span className="text-slate-500 font-medium">ระดับแบตเตอรี่:</span>
-        <span className={`text-lg font-black ${isCharging ? "text-emerald-600" : "text-blue-600"}`}>
-          {pt.level}%
+      
+      <div className="flex items-center justify-between gap-4 py-1 border-t border-slate-800">
+        <div className="flex items-center gap-1.5">
+          <span className={`w-2 h-2 rounded-full ${isCharging ? "bg-emerald-400 animate-pulse" : "bg-blue-400"}`} />
+          <span className={`text-base font-black ${isCharging ? "text-emerald-400" : "text-blue-400"}`}>
+            {pt.level}%
+          </span>
+        </div>
+        <span className="text-[11px] font-bold text-slate-200 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
+          {isCharging ? "ชาร์จไฟ" : "ใช้งาน"}
         </span>
       </div>
-      <div className="pt-0.5">
-        {isCharging ? (
-          <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50/90 px-2.5 py-1 rounded-lg font-bold border border-emerald-200/60 shadow-sm shadow-emerald-500/10">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            กำลังชาร์จไฟ (Charging)
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50/90 px-2.5 py-1 rounded-lg font-bold border border-blue-200/60 shadow-sm shadow-blue-500/10">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            ใช้งานปกติ (Discharging)
-          </div>
-        )}
-      </div>
+
       {pt.eventType && (
-        <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] font-bold text-slate-700 flex items-center gap-1">
-          {pt.eventType === 'PLUGGED_IN' && 'เริ่มเสียบสายชาร์จ'}
-          {pt.eventType === 'UNPLUGGED' && 'ถอดสายชาร์จแล้ว'}
-          {pt.eventType === 'FULL' && 'ชาร์จเต็ม 100%'}
-          {pt.eventType === 'NEAR_FULL' && `แบตใกล้เต็ม (${pt.level}%)`}
-          {pt.eventType === 'LOW_BATTERY' && `แบตเตอรี่ต่ำ (${pt.level}%)`}
-          {pt.eventType === 'BATTERY_EMPTY' && `แบตเตอรี่หมด (0%)`}
+        <div className="mt-1 pt-1 border-t border-slate-800 text-[10px] font-semibold text-amber-300 flex items-center gap-1">
+          <span>•</span>
+          <span>
+            {pt.eventType === 'PLUGGED_IN' && 'เริ่มเสียบสายชาร์จ'}
+            {pt.eventType === 'UNPLUGGED' && 'ถอดสายชาร์จแล้ว'}
+            {pt.eventType === 'FULL' && 'ชาร์จเต็ม 100%'}
+            {pt.eventType === 'NEAR_FULL' && `แบตใกล้เต็ม (${pt.level}%)`}
+            {pt.eventType === 'LOW_BATTERY' && `แบตเตอรี่ต่ำ (${pt.level}%)`}
+            {pt.eventType === 'BATTERY_EMPTY' && `แบตเตอรี่หมด (0%)`}
+          </span>
         </div>
       )}
     </div>
@@ -364,7 +361,7 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
           </span>
         </div>
       </div>
-      <div className="w-full h-44 sm:h-52">
+      <div className="w-full h-52 sm:h-60">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -467,7 +464,7 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
               return null;
             })}
 
-            <Tooltip content={<CustomGraphTooltip />} />
+            <Tooltip content={<CustomGraphTooltip />} offset={24} wrapperStyle={{ outline: 'none', zIndex: 100, pointerEvents: 'none' }} />
             <Area
               type="monotone"
               dataKey="dischargingLevel"
