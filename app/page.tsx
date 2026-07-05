@@ -1931,9 +1931,18 @@ export default function BatteryDashboard() {
                   {settingsTab === 'templates' && (
                     <div className="space-y-4 animate-fadeIn">
                       <div className="bg-sky-50 p-3.5 rounded-2xl border border-sky-100 text-xs text-sky-800 leading-relaxed">
-                        <p className="font-bold mb-1">💡 คำแนะนำตัวแปรในข้อความ (Variables):</p>
-                        คุณสามารถใช้ตัวแปรดังต่อไปนี้ในข้อความแจ้งเตือน:<br />
-                        <code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{device}"}</code> = ชื่ออุปกรณ์ | <code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{battery}"}</code> = ระดับแบตเตอรี่ (%) | <code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{time}"}</code> = เวลาอัปเดต | <code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{duration}"}</code> = ระยะเวลาที่ขาดการติดต่อ
+                        <p className="font-bold mb-1">💡 คำแนะนำตัวแปรที่ใช้ได้ในข้อความ (Variables):</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-1.5">
+                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{device}"}</code> = ชื่ออุปกรณ์</div>
+                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{battery}"}</code> = ระดับแบตเตอรี่ (%)</div>
+                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{datetime}"}</code> = วันที่และเวลาปัจจุบัน</div>
+                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{duration}"}</code> = ระยะเวลาชาร์จ / ขาดการติดต่อ</div>
+                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{start_time}"}</code> = เวลาเริ่มชาร์จ</div>
+                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{start_battery}"}</code> = แบตตอนเริ่มชาร์จ (%)</div>
+                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{gained}"}</code> = แบตที่เพิ่มขึ้น (+X%)</div>
+                          <div><code className="bg-sky-100 px-1 py-0.5 rounded font-mono font-bold">{"{time}"}</code> = เวลา (เฉพาะชั่วโมง:นาที)</div>
+                        </div>
+                        <p className="mt-2 text-[11px] text-slate-500 font-bold">* คุณสามารถปรับแต่งข้อความได้ทั้งกล่อง ทุกบรรทัด รวมถึงแท็ก HTML เช่น &lt;b&gt;, &lt;code&gt;, &lt;i&gt; ได้อย่างอิสระ 100%</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1942,7 +1951,7 @@ export default function BatteryDashboard() {
                             1. เริ่มเสียบสายชาร์จ
                           </label>
                           <textarea
-                            rows={3}
+                            rows={8}
                             value={settingsData.msg_template_plugged_in || ''}
                             onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_plugged_in: e.target.value }))}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
@@ -1953,7 +1962,7 @@ export default function BatteryDashboard() {
                             2. ถอดสายชาร์จ
                           </label>
                           <textarea
-                            rows={3}
+                            rows={8}
                             value={settingsData.msg_template_unplugged || ''}
                             onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_unplugged: e.target.value }))}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
@@ -1964,7 +1973,7 @@ export default function BatteryDashboard() {
                             3. ชาร์จเต็ม 100%
                           </label>
                           <textarea
-                            rows={3}
+                            rows={8}
                             value={settingsData.msg_template_full_charge || ''}
                             onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_full_charge: e.target.value }))}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
@@ -1975,7 +1984,7 @@ export default function BatteryDashboard() {
                             4. แบตเตอรี่ใกล้เต็ม (80-95%)
                           </label>
                           <textarea
-                            rows={3}
+                            rows={8}
                             value={settingsData.msg_template_near_full || ''}
                             onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_near_full: e.target.value }))}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
@@ -1986,7 +1995,7 @@ export default function BatteryDashboard() {
                             5. แบตเตอรี่ต่ำ (5-20%)
                           </label>
                           <textarea
-                            rows={3}
+                            rows={8}
                             value={settingsData.msg_template_low_battery || ''}
                             onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_low_battery: e.target.value }))}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
@@ -1997,7 +2006,7 @@ export default function BatteryDashboard() {
                             6. แบตเตอรี่หมดวิกฤต (0%)
                           </label>
                           <textarea
-                            rows={3}
+                            rows={8}
                             value={settingsData.msg_template_battery_empty || ''}
                             onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_battery_empty: e.target.value }))}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"
@@ -2008,7 +2017,7 @@ export default function BatteryDashboard() {
                             7. กลับมาเชื่อมต่อระบบ (หลังขาดการติดต่อ)
                           </label>
                           <textarea
-                            rows={3}
+                            rows={8}
                             value={settingsData.msg_template_reconnected || ''}
                             onChange={(e) => setSettingsData((prev) => ({ ...prev, msg_template_reconnected: e.target.value }))}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500"

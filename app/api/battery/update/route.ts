@@ -91,32 +91,6 @@ function getChargingSummary(
   };
 }
 
-function formatTelegramAlert(
-  title: string,
-  deviceName: string,
-  statusText: string,
-  details?: { label: string; value: string }[],
-  nowDate?: Date
-): string {
-  const d = nowDate || new Date();
-  const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-  const dateStr = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const timestampStr = `${dateStr} | ${timeStr}`;
-
-  let msg = `<b>[แจ้งเตือน: ${title}]</b>\n`;
-  msg += `----------------------------------------\n`;
-  msg += `<b>อุปกรณ์:</b> <code>${deviceName}</code>\n`;
-  msg += `<b>สถานะ:</b> ${statusText}\n`;
-  if (details && details.length > 0) {
-    for (const item of details) {
-      msg += `<b>${item.label}:</b> <b>${item.value}</b>\n`;
-    }
-  }
-  msg += `----------------------------------------\n`;
-  msg += `<i>เวลา: ${timestampStr}</i>`;
-  return msg;
-}
-
 interface UpdatePayload {
   deviceId?: string;
   device_id?: string;
@@ -357,7 +331,9 @@ export async function POST(request: Request) {
     const offlineThreshold = Number(sysSettings.offline_threshold_minutes) || 60;
     const nearFullLevels = (sysSettings.alert_near_full_levels || '80, 90, 95').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n));
     const lowBatteryLevels = (sysSettings.alert_low_battery_levels || '20, 15, 10, 5, 0').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n));
-    const nowTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const nowTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    const nowDateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const nowDateTimeStr = `${nowDateStr} | ${nowTimeStr}`;
 
     const timeDiffMinutes = (now.getTime() - new Date(existingDevice.updatedAt).getTime()) / (1000 * 60);
 
@@ -370,24 +346,41 @@ export async function POST(request: Request) {
       let durText = `${totalMins} นาที`;
       if (hrs > 0 && mns > 0) durText = `${hrs} ชม. ${mns} นาที`;
       else if (hrs > 0 && mns === 0) durText = `${hrs} ชม.`;
-      const customStatus = formatTemplateMessage(sysSettings.msg_template_reconnected, { device: deviceName, battery: currentBattery, time: nowTimeStr, duration: durText });
-      await sendNotification(formatTelegramAlert('กลับมาเชื่อมต่อระบบ', deviceName, customStatus, [{ label: 'ขาดการติดต่อไป', value: `ประมาณ ${durText}` }], now));
+      const msg = formatTemplateMessage(sysSettings.msg_template_reconnected, {
+        device: deviceName,
+        battery: currentBattery,
+        time: nowTimeStr,
+        date: nowDateStr,
+        datetime: nowDateTimeStr,
+        duration: durText,
+      });
+      await sendNotification(msg);
     } else if (existingDevice.isCharging !== currentIsCharging) {
       eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
       if (currentIsCharging) {
-        const customStatus = formatTemplateMessage(sysSettings.msg_template_plugged_in, { device: deviceName, battery: currentBattery, time: nowTimeStr });
-        await sendNotification(formatTelegramAlert('เสียบสายชาร์จ', deviceName, customStatus, [{ label: 'ระดับแบตเตอรี่', value: `${currentBattery}%` }], now));
+        const msg = formatTemplateMessage(sysSettings.msg_template_plugged_in, {
+          device: deviceName,
+          battery: currentBattery,
+          time: nowTimeStr,
+          date: nowDateStr,
+          datetime: nowDateTimeStr,
+        });
+        await sendNotification(msg);
       } else {
         const summary = getChargingSummary(currentBattery, now, existingDevice.logs || []);
-        const details = [{ label: 'ระดับแบตเตอรี่', value: `${currentBattery}%` }];
-        if (summary) {
-          details.push({ label: 'ชาร์จตั้งแต่', value: `${summary.startTimeStr} (${summary.startLevel}%)` });
-          details.push({ label: 'ได้แบตเพิ่ม', value: summary.gainedStr });
-          details.push({ label: 'ใช้เวลาชาร์จ', value: summary.durationStr });
-        }
-        const customStatus = formatTemplateMessage(sysSettings.msg_template_unplugged, { device: deviceName, battery: currentBattery, time: nowTimeStr });
-        await sendNotification(formatTelegramAlert('ถอดสายชาร์จ', deviceName, customStatus, details, now));
+        const msg = formatTemplateMessage(sysSettings.msg_template_unplugged, {
+          device: deviceName,
+          battery: currentBattery,
+          time: nowTimeStr,
+          date: nowDateStr,
+          datetime: nowDateTimeStr,
+          start_time: summary ? summary.startTimeStr : '-',
+          start_battery: summary ? summary.startLevel : '-',
+          gained: summary ? summary.gainedStr : '-',
+          duration: summary ? summary.durationStr : '-',
+        });
+        await sendNotification(msg);
       }
     } else if (currentIsCharging && existingDevice.batteryLevel < currentBattery) {
       const chargeThresholds = [...nearFullLevels, 100].sort((a, b) => a - b);
@@ -399,17 +392,27 @@ export async function POST(request: Request) {
         const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
         if (crossedThreshold === 100) {
           const summary = getChargingSummary(currentBattery, now, existingDevice.logs || []);
-          const details = [{ label: 'ระดับแบตเตอรี่', value: '100%' }];
-          if (summary) {
-            details.push({ label: 'ชาร์จตั้งแต่', value: `${summary.startTimeStr} (${summary.startLevel}%)` });
-            details.push({ label: 'ได้แบตเพิ่ม', value: summary.gainedStr });
-            details.push({ label: 'ใช้เวลาชาร์จ', value: summary.durationStr });
-          }
-          const customStatus = formatTemplateMessage(sysSettings.msg_template_full_charge, { device: deviceName, battery: currentBattery, time: nowTimeStr });
-          await sendNotification(formatTelegramAlert('แบตเตอรี่ชาร์จเต็ม', deviceName, customStatus, details, now));
+          const msg = formatTemplateMessage(sysSettings.msg_template_full_charge, {
+            device: deviceName,
+            battery: currentBattery,
+            time: nowTimeStr,
+            date: nowDateStr,
+            datetime: nowDateTimeStr,
+            start_time: summary ? summary.startTimeStr : '-',
+            start_battery: summary ? summary.startLevel : '-',
+            gained: summary ? summary.gainedStr : '-',
+            duration: summary ? summary.durationStr : '-',
+          });
+          await sendNotification(msg);
         } else {
-          const customStatus = formatTemplateMessage(sysSettings.msg_template_near_full, { device: deviceName, battery: currentBattery, time: nowTimeStr });
-          await sendNotification(formatTelegramAlert('แบตเตอรี่ใกล้เต็ม', deviceName, customStatus, [{ label: 'ระดับปัจจุบัน', value: `${currentBattery}%` }], now));
+          const msg = formatTemplateMessage(sysSettings.msg_template_near_full, {
+            device: deviceName,
+            battery: currentBattery,
+            time: nowTimeStr,
+            date: nowDateStr,
+            datetime: nowDateTimeStr,
+          });
+          await sendNotification(msg);
         }
       } else {
         eventType = 'LEVEL_UPDATE';
@@ -423,11 +426,23 @@ export async function POST(request: Request) {
         eventType = crossedThreshold === 0 ? 'BATTERY_EMPTY' : 'LOW_BATTERY';
         const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
         if (crossedThreshold === 0) {
-          const customStatus = formatTemplateMessage(sysSettings.msg_template_battery_empty, { device: deviceName, battery: currentBattery, time: nowTimeStr });
-          await sendNotification(formatTelegramAlert('แบตเตอรี่หมดวิกฤต', deviceName, customStatus, [{ label: 'คำแนะนำ', value: 'อุปกรณ์อาจดับหรือหยุดทำงาน' }], now));
+          const msg = formatTemplateMessage(sysSettings.msg_template_battery_empty, {
+            device: deviceName,
+            battery: currentBattery,
+            time: nowTimeStr,
+            date: nowDateStr,
+            datetime: nowDateTimeStr,
+          });
+          await sendNotification(msg);
         } else {
-          const customStatus = formatTemplateMessage(sysSettings.msg_template_low_battery, { device: deviceName, battery: currentBattery, time: nowTimeStr });
-          await sendNotification(formatTelegramAlert('แบตเตอรี่ต่ำ', deviceName, customStatus, [{ label: 'เหลือแบตเตอรี่', value: `${currentBattery}%` }], now));
+          const msg = formatTemplateMessage(sysSettings.msg_template_low_battery, {
+            device: deviceName,
+            battery: currentBattery,
+            time: nowTimeStr,
+            date: nowDateStr,
+            datetime: nowDateTimeStr,
+          });
+          await sendNotification(msg);
         }
       } else {
         eventType = 'LEVEL_UPDATE';
