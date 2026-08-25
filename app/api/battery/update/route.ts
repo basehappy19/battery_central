@@ -397,27 +397,45 @@ export async function POST(request: Request) {
         if (sysSettings.enable_msg_unplugged !== 'false') await sendNotification(msg);
       }
     } else if (currentIsCharging && existingDevice.batteryLevel < currentBattery) {
+      // ถ้าแบตกระโดดข้าม threshold หลายอัน ให้เลือก threshold สูงสุดที่ข้ามผ่าน
+      // และถ้า battery = 100 ให้ใช้แค่ FULL_CHARGE เท่านั้น ไม่ใช้ NEAR_FULL
       const chargeThresholds = [...nearFullLevels, 100].sort((a, b) => a - b);
-      const crossedThreshold = chargeThresholds.find(
-        (t) => currentBattery >= t && existingDevice.batteryLevel < t
-      );
+      const crossedThreshold = currentBattery === 100
+        ? 100
+        : chargeThresholds.find((t) => currentBattery >= t && existingDevice.batteryLevel < t);
+
       if (crossedThreshold !== undefined) {
         eventType = crossedThreshold === 100 ? 'FULL_CHARGE' : 'NEAR_FULL';
         const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
         if (crossedThreshold === 100) {
-          const summary = getChargingSummary(currentBattery, now, existingDevice.logs || []);
-          const msg = formatTemplateMessage(sysSettings.msg_template_full_charge, {
-            device: deviceName,
-            battery: currentBattery,
-            time: nowTimeStr,
-            date: nowDateStr,
-            datetime: nowDateTimeStr,
-            start_time: summary ? summary.startTimeStr : '-',
-            start_battery: summary ? summary.startLevel : '-',
-            gained: summary ? summary.gainedStr : '-',
-            duration: summary ? summary.durationStr : '-',
-          });
-          if (sysSettings.enable_msg_full_charge !== 'false') await sendNotification(msg);
+          // ป้องกัน FULL_CHARGE ยิงซ้ำในรอบชาร์จเดียวกัน:
+          // scan logs (newest first) หาว่ามี FULL_CHARGE ก่อนพบ UNPLUGGED/PLUGGED_IN
+          // ถ้าพบ FULL_CHARGE ก่อน = แจ้งในรอบชาร์จนี้แล้ว (แม้แบตจะ fluctuate 99→100)
+          const sortedLogs = existingDevice.logs || [];
+          let alreadyNotifiedFull = false;
+          for (const l of sortedLogs) {
+            if (l.eventType === 'FULL_CHARGE') { alreadyNotifiedFull = true; break; }
+            if (l.eventType === 'UNPLUGGED' || l.eventType === 'PLUGGED_IN') break;
+          }
+
+          if (!alreadyNotifiedFull) {
+            const summary = getChargingSummary(currentBattery, now, existingDevice.logs || []);
+            const msg = formatTemplateMessage(sysSettings.msg_template_full_charge, {
+              device: deviceName,
+              battery: currentBattery,
+              time: nowTimeStr,
+              date: nowDateStr,
+              datetime: nowDateTimeStr,
+              start_time: summary ? summary.startTimeStr : '-',
+              start_battery: summary ? summary.startLevel : '-',
+              gained: summary ? summary.gainedStr : '-',
+              duration: summary ? summary.durationStr : '-',
+            });
+            if (sysSettings.enable_msg_full_charge !== 'false') await sendNotification(msg);
+          } else {
+            // แจ้งเตือนแล้วในรอบชาร์จนี้ ไม่ต้อง notify ซ้ำ
+            eventType = 'LEVEL_UPDATE';
+          }
         } else {
           const msg = formatTemplateMessage(sysSettings.msg_template_near_full, {
             device: deviceName,
