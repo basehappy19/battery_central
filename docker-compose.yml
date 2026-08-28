@@ -14,5 +14,21 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # Local/test-only MQTT broker for Feature 10 (MQTT Support). Anonymous
+  # access via mosquitto/config/mosquitto.conf is meant for testing on your
+  # own machine — see README.md's "MQTT (Mosquitto) Setup on a Cloud VPS"
+  # section for the authenticated setup to use in production.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: battery-central-mosquitto
+    restart: always
+    ports:
+      - "1883:1883" # MQTT
+      - "9001:9001" # MQTT over WebSockets (for browser-based test clients)
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
 volumes:
   pgdata:

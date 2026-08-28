@@ -156,8 +156,11 @@ export async function GET(request: Request) {
         });
       }
 
+      // Feature 4: a device's own offlineTimeoutMinutes (set via the threshold
+      // modal) overrides the global default when present.
+      const deviceOfflineThreshold = device.offlineTimeoutMinutes ?? offlineThreshold;
       const timeSinceUpdateMinutes = (now.getTime() - device.updatedAt.getTime()) / (1000 * 60);
-      const isOffline = timeSinceUpdateMinutes > offlineThreshold;
+      const isOffline = timeSinceUpdateMinutes > deviceOfflineThreshold;
       const offlineDurationMinutes = isOffline ? Math.round(timeSinceUpdateMinutes) : undefined;
       const offlineSince = isOffline ? device.updatedAt.toISOString() : undefined;
 
@@ -173,6 +176,11 @@ export async function GET(request: Request) {
         isOffline,
         offlineDurationMinutes,
         offlineSince,
+        lowBatteryThreshold: device.lowBatteryThreshold,
+        offlineTimeoutMinutes: device.offlineTimeoutMinutes,
+        alertEnabled: device.alertEnabled,
+        lastLat: device.lastLat,
+        lastLng: device.lastLng,
         todayStats: {
           pluggedCount,
           unpluggedCount,
@@ -258,6 +266,13 @@ interface PatchPayload {
   id?: string;
   name?: string;
   acceptingUpdates?: boolean | string;
+  // Feature 4: custom per-device alert thresholds
+  lowBatteryThreshold?: number | string;
+  offlineTimeoutMinutes?: number | string;
+  alertEnabled?: boolean | string;
+  // Feature 11: manually set / correct a device's location
+  lastLat?: number | string | null;
+  lastLng?: number | string | null;
 }
 
 export async function PATCH(request: Request) {
@@ -265,7 +280,7 @@ export async function PATCH(request: Request) {
   let body: PatchPayload | null = null;
   try {
     body = (await request.json()) as PatchPayload;
-    const { id, name, acceptingUpdates } = body || {};
+    const { id, name, acceptingUpdates, lowBatteryThreshold, offlineTimeoutMinutes, alertEnabled, lastLat, lastLng } = body || {};
 
     if (!id || typeof id !== 'string') {
       logApiRequest({ method: 'PATCH', path: '/api/devices', status: 400, durationMs: Date.now() - startTime, req: request, requestBody: body, responseBody: { error: 'Missing or invalid device id' } });
@@ -275,11 +290,34 @@ export async function PATCH(request: Request) {
     const cleanId = String(id).trim();
     const cleanName = name !== undefined ? String(name).trim() : undefined;
 
+    let cleanLowBatteryThreshold: number | undefined;
+    if (lowBatteryThreshold !== undefined) {
+      const n = Math.round(Number(lowBatteryThreshold));
+      if (isNaN(n) || n < 0 || n > 100) {
+        return NextResponse.json({ error: 'lowBatteryThreshold ต้องเป็นตัวเลข 0-100' }, { status: 400 });
+      }
+      cleanLowBatteryThreshold = n;
+    }
+
+    let cleanOfflineTimeout: number | undefined;
+    if (offlineTimeoutMinutes !== undefined) {
+      const n = Math.round(Number(offlineTimeoutMinutes));
+      if (isNaN(n) || n < 1 || n > 100000) {
+        return NextResponse.json({ error: 'offlineTimeoutMinutes ต้องเป็นตัวเลขมากกว่า 0' }, { status: 400 });
+      }
+      cleanOfflineTimeout = n;
+    }
+
     const updated = await prisma.device.updateMany({
       where: { id: cleanId },
       data: {
         ...(cleanName !== undefined && { name: cleanName }),
         ...(acceptingUpdates !== undefined && { acceptingUpdates: Boolean(acceptingUpdates) }),
+        ...(cleanLowBatteryThreshold !== undefined && { lowBatteryThreshold: cleanLowBatteryThreshold }),
+        ...(cleanOfflineTimeout !== undefined && { offlineTimeoutMinutes: cleanOfflineTimeout }),
+        ...(alertEnabled !== undefined && { alertEnabled: Boolean(alertEnabled) }),
+        ...(lastLat !== undefined && { lastLat: lastLat === null ? null : Number(lastLat) }),
+        ...(lastLng !== undefined && { lastLng: lastLng === null ? null : Number(lastLng) }),
       },
     });
 

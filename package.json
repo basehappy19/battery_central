@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "mqtt": "node scripts/mqtt-listener.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -15,6 +16,8 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "leaflet": "^1.9.4",
+    "mqtt": "^5.10.4",
     "next": "16.2.10",
     "pg": "^8.22.0",
     "prisma": "^7.8.0",
@@ -24,6 +27,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.14",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

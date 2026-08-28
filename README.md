@@ -329,29 +329,160 @@ HTTP Request:
 
 ### 🔄 Data Retention
 
-- **BatteryLog** — entries older than **90 days** are automatically purged on each /api/logs call.
+- **BatteryLog** — entries older than **90 days** are automatically purged (both on every `/api/battery/update` call for that device, and globally on each `/api/logs` call). This single retention window (see `lib/retention.ts`) is what makes the 7/30-day graph, health score, and charging profile features below possible — an earlier version purged a device's own logs after just 7 days, which silently broke multi-day history.
 
 ---
 
 ## 💡 Feature Roadmap / แนะนำ Feature เพิ่มเติม
 
-| # | Feature | Description |
-|---|---------|-------------|
-| 1 | **LINE / Telegram Alerts** | แจ้งเตือนเมื่อแบตต่ำกว่า threshold หรือออฟไลน์นานเกิน X นาที |
-| 2 | **Battery Health Score** | คำนวณสุขภาพแบตเตอรี่จากพฤติกรรมการชาร์จ (cycle count, deep discharge) |
-| 3 | **Multi-day Graph** | กราฟย้อนหลัง 7/30 วัน เพื่อดูแนวโน้ม |
-| 4 | **Scheduled Report** | ส่ง daily/weekly summary ทาง email หรือ LINE |
-| 5 | **Public Embed Widget** | iframe widget + shareable link |
-| 6 | **Charging Profile Analysis** | วิเคราะห์นิสัยการชาร์จ เช่น ชาร์จค้างคืนบ่อยแค่ไหน |
-| 7 | **Device Groups / Tags** | จัดกลุ่มอุปกรณ์ตาม location หรือ owner |
-| 8 | **Dark Mode** | รองรับ dark/light mode toggle |
-| 9 | **PWA / Mobile App** | Progressive Web App + push notification |
-| 10 | **API Rate Limiting** | ป้องกัน spam ด้วย rate limit per API key |
-| 11 | **Geolocation Tagging** | บันทึก location ที่ชาร์จ |
-| 12 | **Export CSV/PDF** | Export ประวัติแบตเตอรี่ |
-| 13 | **MQTT Support** | รองรับ MQTT protocol สำหรับ IoT/ESP32 |
-| 14 | **Custom Thresholds per Device** | ตั้ง threshold แจ้งเตือนแยกตามอุปกรณ์ |
-| 15 | **Battery Comparison View** | เปรียบเทียบกราฟหลายอุปกรณ์ในหน้าเดียว |
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | **LINE / Telegram Alerts** | ✅ Implemented (Settings → Telegram) |
+| 2 | **Battery Health Score** | ✅ Implemented |
+| 3 | **Multi-day Graph** | ✅ Implemented |
+| 4 | **Scheduled Report** | Not implemented |
+| 5 | **Public Embed Widget** | ✅ Implemented |
+| 6 | **Charging Profile Analysis** | ✅ Implemented |
+| 7 | **Device Groups / Tags** | Not implemented |
+| 8 | **Dark Mode** | Not implemented |
+| 9 | **PWA / Mobile App** | ✅ Implemented (installable PWA; no push notifications) |
+| 10 | **API Rate Limiting** | ✅ Implemented |
+| 11 | **Geolocation Tagging** | ✅ Implemented |
+| 12 | **Export CSV/PDF** | ✅ Implemented (CSV only, no PDF) |
+| 13 | **MQTT Support** | ✅ Implemented |
+| 14 | **Custom Thresholds per Device** | ✅ Implemented |
+| 15 | **Battery Comparison View** | ✅ Implemented |
+
+---
+
+## 🆕 New Features Guide
+
+> **Upgrading an existing installation:** these features add new columns to `Device`, a new `ShareToken` table, and two new npm dependencies (`mqtt`, `leaflet`). After pulling this update, run:
+>
+> ```bash
+> npm install
+> npx prisma db push   # or: npx prisma migrate dev --name add_thresholds_geolocation_sharing
+> npm run build
+> ```
+>
+
+### Battery Health Score & Charging Profile Analysis (#2, #6)
+
+Expand any device card to see a 0–100 health score (deep-discharge frequency, time spent sitting at 100%, and charge-cycle churn over the last 7 or 30 days) plus a plain-language summary of charging habits (overnight charging %, average session length, full-charge rate). Computed on demand by `GET /api/devices/[id]/analysis?days=7|30` — not on the 5-second dashboard poll — so it never slows down the main view. Logic lives in `lib/analysis.ts`.
+
+### Multi-day Graph (#3)
+
+The existing daily graph inside each device card now has a **1 วัน / 7 วัน / 30 วัน** toggle. 7/30-day ranges are fetched from `GET /api/devices/[id]/history?days=N`.
+
+### Custom Thresholds per Device (#14)
+
+Click the gear icon on any device card to set a per-device low-battery %, offline timeout (minutes), and an alert on/off switch. These override the global values from Settings for that device only (`Device.lowBatteryThreshold`, `Device.offlineTimeoutMinutes`, `Device.alertEnabled` in the schema).
+
+### Battery Comparison View (#15)
+
+`/compare` — pick any set of devices and see their battery history overlaid on one chart, for 7 or 30 days.
+
+### Public Embed Widget (#5)
+
+Click **"แชร์/ฝัง"** in the header (or **"แชร์"** on a device card) to generate a share link. It lists existing links too, with copy-link / copy-embed-code / revoke actions. The generated `/share/[token]` page has no login and no navigation chrome, so it's safe to embed:
+
+```html
+<iframe src="https://your-domain.com/share/<token>" width="360" height="220" style="border:0;border-radius:16px;"></iframe>
+```
+
+Share links can optionally expire after N hours. Revoking a link immediately invalidates it (`DELETE /api/share?token=...`).
+
+### Export CSV (#12)
+
+Each device card has a **"CSV"** button that downloads its full battery-log history (up to the 90-day retention window) as a CSV file (`GET /api/devices/[id]/export?days=N`).
+
+### Geolocation (#11)
+
+Devices with GPS (e.g. an ESP32 + GPS module) can include `lat`/`lng` (or `latitude`/`longitude`) in their `POST /api/battery/update` payload to record location automatically. For devices without their own GPS, an admin can click **"ใช้ตำแหน่งปัจจุบัน"** on the expanded card to record the browser's current location instead. Locations render on an OpenStreetMap/Leaflet map — no API key required.
+
+### Installable PWA (#9)
+
+The dashboard can be added to a phone or desktop home screen (`public/manifest.json`, `public/sw.js`). No offline caching and no push notifications — just an installable, standalone window. iOS: Safari → Share → "Add to Home Screen". Android/desktop Chrome: the browser's own install prompt.
+
+### API Rate Limiting (#10)
+
+`proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`) rate-limits every `/api/*` route using the in-memory limiter in `lib/security.ts`. Defaults: 120 req/min per IP for most routes, 180 req/min for `/api/battery/update` (devices get their own bucket so a handful of them behind one NAT don't trip the general dashboard limit). Tune via `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_BATTERY_MAX`, `RATE_LIMIT_BATTERY_WINDOW_MS` in `.env`. This is a single-process in-memory limiter — fine for one server instance, not shared across multiple instances behind a load balancer.
+
+### MQTT Support (#13)
+
+See **"MQTT (Mosquitto) Setup"** below for the broker; then run the worker that bridges MQTT → the existing `/api/battery/update` endpoint:
+
+```bash
+# .env
+MQTT_BROKER_URL="mqtt://your-vps-ip:1883"
+MQTT_USERNAME="myuser"
+MQTT_PASSWORD="..."
+API_SECRET_KEY="..."       # sent as x-api-key when calling /api/battery/update
+APP_BASE_URL="http://localhost:3000"
+
+npm run mqtt
+```
+
+Publish JSON like `{"batteryLevel": 87, "isCharging": true, "platform": "ESP32"}` to `battery-central/<deviceId>/status` and the worker forwards it to the API (reusing all existing validation, debounce, and notification logic). Run it as a systemd service, pm2 process, or a second `docker-compose` service alongside the app — see `scripts/mqtt-listener.js` for full env var docs.
+
+---
+
+## 🌩️ MQTT (Mosquitto) Setup on a Cloud VPS
+
+For low-power IoT devices (ESP32), run Mosquitto on a Cloud VPS (DigitalOcean, AWS EC2, Linode, ...) with Docker installed.
+
+**On the VPS (Ubuntu/Debian):**
+
+1. Create the config:
+
+   ```bash
+   mkdir -p /opt/mosquitto/config /opt/mosquitto/data /opt/mosquitto/log
+   nano /opt/mosquitto/config/mosquitto.conf
+   ```
+
+   ```conf
+   allow_anonymous false
+   password_file /mosquitto/config/pwfile
+   listener 1883
+   # listener 9001
+   # protocol websockets
+   ```
+
+2. Create a username/password (replace `myuser`):
+
+   ```bash
+   docker run -it --rm -v /opt/mosquitto/config:/mosquitto/config eclipse-mosquitto mosquitto_passwd -c /mosquitto/config/pwfile myuser
+   ```
+
+3. Run Mosquitto via Docker Compose:
+
+   ```yaml
+   # docker-compose.yml
+   services:
+     mosquitto:
+       image: eclipse-mosquitto
+       container_name: mosquitto_broker
+       restart: always
+       ports:
+         - "1883:1883"
+         - "9001:9001"
+       volumes:
+         - /opt/mosquitto/config:/mosquitto/config
+         - /opt/mosquitto/data:/mosquitto/data
+         - /opt/mosquitto/log:/mosquitto/log
+   ```
+
+   ```bash
+   docker-compose up -d
+   ```
+
+4. Open the firewall:
+
+   ```bash
+   sudo ufw allow 1883/tcp
+   ```
+
+Then point `MQTT_BROKER_URL=mqtt://<VPS-IP>:1883` at it and run `npm run mqtt` next to (or on) the machine running this app.
 
 ---
 

@@ -20,6 +20,16 @@ model Device {
   acceptingUpdates Boolean      @default(true) // Enable/disable receiving requests
   order            Int          @default(0)    // Display order on dashboard
   updatedAt        DateTime     @updatedAt
+
+  // --- Custom alert thresholds per device (Feature 4) ---
+  lowBatteryThreshold   Int      @default(15)   // % level that triggers a "low battery" alert for this device
+  offlineTimeoutMinutes Int      @default(60)   // minutes without an update before this device is considered offline
+  alertEnabled          Boolean  @default(true) // master switch for all alerts on this device
+
+  // --- Geolocation (Feature 11) ---
+  lastLat          Float?       // last reported latitude
+  lastLng          Float?       // last reported longitude
+
   logs             BatteryLog[]
 }
 
@@ -38,6 +48,17 @@ model BatteryLog {
 model Setting {
   key   String @id
   value String
+}
+
+// Public share link for embedding a read-only status widget (Feature 14)
+model ShareToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  deviceIds String[]  // devices exposed through this share link
+  expiresAt DateTime? // null = never expires
+  createdAt DateTime  @default(now())
+
+  @@index([token])
 }
 
 model ApiLog {

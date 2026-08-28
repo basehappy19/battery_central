@@ -4,6 +4,7 @@ import type { Device, BatteryLog } from '@prisma/client';
 import { verifyApiKey } from '@/lib/security';
 import { getSystemSettings, formatTemplateMessage } from '@/lib/settings';
 import { logApiRequest } from '@/lib/api-logger';
+import { retentionCutoffDate } from '@/lib/retention';
 
 async function sendNotification(message: string): Promise<void> {
   console.log(`[ALERT NOTIFICATION]: ${message}`);
@@ -108,6 +109,10 @@ interface UpdatePayload {
   apiKey?: string;
   api_key?: string;
   key?: string;
+  lat?: number | string;
+  lng?: number | string;
+  latitude?: number | string;
+  longitude?: number | string;
 }
 
 function calculateAdvancedTimeRemaining(
@@ -317,6 +322,8 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
+    // Only the last 7 days are needed to estimate charge/discharge rate — this
+    // is just a query window, not a retention policy (see lib/retention.ts).
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const existingDevice = await prisma.device.findFirst({
@@ -348,10 +355,18 @@ export async function POST(request: Request) {
     let eventType: string | null = null;
 
     const sysSettings = await getSystemSettings();
-    const offlineThreshold = Number(sysSettings.offline_threshold_minutes) || 60;
+    // Feature 4: per-device offline timeout / low-battery threshold / alert toggle
+    // override (or extend) the global settings below.
+    const offlineThreshold = existingDevice.offlineTimeoutMinutes ?? (Number(sysSettings.offline_threshold_minutes) || 60);
+    const alertsEnabled = existingDevice.alertEnabled !== false;
     const debounceSeconds = Number(sysSettings.charge_debounce_seconds) || 30;
     const nearFullLevels = (sysSettings.alert_near_full_levels || '80, 90, 95').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n));
-    const lowBatteryLevels = (sysSettings.alert_low_battery_levels || '20, 15, 10, 5').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n > 0);
+    const lowBatteryLevels = Array.from(
+      new Set([
+        ...(sysSettings.alert_low_battery_levels || '20, 15, 10, 5').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n > 0),
+        ...(existingDevice.lowBatteryThreshold ? [existingDevice.lowBatteryThreshold] : []),
+      ])
+    );
     const nowTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
     const nowDateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const nowDateTimeStr = `${nowDateStr} | ${nowTimeStr}`;
@@ -409,7 +424,7 @@ export async function POST(request: Request) {
         datetime: nowDateTimeStr,
         duration: durText,
       });
-      if (sysSettings.enable_msg_reconnected !== 'false') await sendNotification(msg);
+      if (alertsEnabled && sysSettings.enable_msg_reconnected !== 'false') await sendNotification(msg);
     } else if (chargingStateChanged) {
       eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
@@ -421,7 +436,7 @@ export async function POST(request: Request) {
           date: nowDateStr,
           datetime: nowDateTimeStr,
         });
-        if (sysSettings.enable_msg_plugged_in !== 'false') await sendNotification(msg);
+        if (alertsEnabled && sysSettings.enable_msg_plugged_in !== 'false') await sendNotification(msg);
       } else {
         const summary = getChargingSummary(currentBattery, now, existingDevice.logs || []);
         const msg = formatTemplateMessage(sysSettings.msg_template_unplugged, {
@@ -435,7 +450,7 @@ export async function POST(request: Request) {
           gained: summary ? summary.gainedStr : '-',
           duration: summary ? summary.durationStr : '-',
         });
-        if (sysSettings.enable_msg_unplugged !== 'false') await sendNotification(msg);
+        if (alertsEnabled && sysSettings.enable_msg_unplugged !== 'false') await sendNotification(msg);
       }
     } else if (confirmedIsCharging && existingDevice.batteryLevel < currentBattery) {
       // ถ้าแบตกระโดดข้าม threshold หลายอัน ให้เลือก threshold สูงสุดที่ข้ามผ่าน
@@ -472,7 +487,7 @@ export async function POST(request: Request) {
               gained: summary ? summary.gainedStr : '-',
               duration: summary ? summary.durationStr : '-',
             });
-            if (sysSettings.enable_msg_full_charge !== 'false') await sendNotification(msg);
+            if (alertsEnabled && sysSettings.enable_msg_full_charge !== 'false') await sendNotification(msg);
           } else {
             // แจ้งเตือนแล้วในรอบชาร์จนี้ ไม่ต้อง notify ซ้ำ
             eventType = 'LEVEL_UPDATE';
@@ -485,7 +500,7 @@ export async function POST(request: Request) {
             date: nowDateStr,
             datetime: nowDateTimeStr,
           });
-          if (sysSettings.enable_msg_near_full !== 'false') await sendNotification(msg);
+          if (alertsEnabled && sysSettings.enable_msg_near_full !== 'false') await sendNotification(msg);
         }
       } else {
         eventType = 'LEVEL_UPDATE';
@@ -506,7 +521,7 @@ export async function POST(request: Request) {
             date: nowDateStr,
             datetime: nowDateTimeStr,
           });
-          if (sysSettings.enable_msg_battery_empty !== 'false') await sendNotification(msg);
+          if (alertsEnabled && sysSettings.enable_msg_battery_empty !== 'false') await sendNotification(msg);
         } else {
           const msg = formatTemplateMessage(sysSettings.msg_template_low_battery, {
             device: deviceName,
@@ -515,7 +530,7 @@ export async function POST(request: Request) {
             date: nowDateStr,
             datetime: nowDateTimeStr,
           });
-          if (sysSettings.enable_msg_low_battery !== 'false') await sendNotification(msg);
+          if (alertsEnabled && sysSettings.enable_msg_low_battery !== 'false') await sendNotification(msg);
         }
       } else {
         eventType = 'LEVEL_UPDATE';
@@ -538,6 +553,17 @@ export async function POST(request: Request) {
       timeRemaining = existingDevice.timeRemaining;
     }
 
+    // Feature 11: optional GPS-enabled devices (e.g. ESP32 with GPS module)
+    // can report their location alongside battery status.
+    const rawLat = body?.lat ?? body?.latitude;
+    const rawLng = body?.lng ?? body?.longitude;
+    const parsedLat = rawLat !== undefined ? Number(rawLat) : undefined;
+    const parsedLng = rawLng !== undefined ? Number(rawLng) : undefined;
+    const hasValidLocation =
+      parsedLat !== undefined && parsedLng !== undefined &&
+      !isNaN(parsedLat) && !isNaN(parsedLng) &&
+      parsedLat >= -90 && parsedLat <= 90 && parsedLng >= -180 && parsedLng <= 180;
+
     await prisma.device.update({
       where: { id: cleanDeviceId },
       data: {
@@ -551,6 +577,7 @@ export async function POST(request: Request) {
         pendingChargingSince: newPendingChargingSince,
         ...(cleanName && { name: cleanName }),
         ...(cleanPlatform && { platform: cleanPlatform }),
+        ...(hasValidLocation && { lastLat: parsedLat, lastLng: parsedLng }),
       },
     });
 
@@ -565,11 +592,16 @@ export async function POST(request: Request) {
       });
     }
 
+    // Retention cleanup — see lib/retention.ts. This used to purge each
+    // device's own logs older than just 7 days, which quietly broke the
+    // multi-day graph, health score, and charging profile features (they
+    // need weeks of history). Now aligned with the global 90-day policy
+    // enforced in /api/logs.
     await prisma.batteryLog.deleteMany({
       where: {
         deviceId: cleanDeviceId,
         createdAt: {
-          lt: sevenDaysAgo,
+          lt: retentionCutoffDate(),
         },
       },
     });

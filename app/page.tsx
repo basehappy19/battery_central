@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import dynamicImport from "next/dynamic";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -12,6 +13,13 @@ import {
   ReferenceArea,
   ReferenceLine,
 } from "recharts";
+import ThresholdModal, { type ThresholdTarget } from "@/components/ThresholdModal";
+import ShareModal from "@/components/ShareModal";
+import DeviceAnalysisPanel from "@/components/DeviceAnalysisPanel";
+import MultiDayBatteryGraph from "@/components/MultiDayBatteryGraph";
+
+// Leaflet touches `window` at import time, so it can only ever run client-side.
+const DeviceMap = dynamicImport(() => import("@/components/DeviceMap"), { ssr: false });
 
 interface HistoryEvent {
   id: string;
@@ -54,6 +62,11 @@ interface Device {
   isOffline?: boolean;
   offlineDurationMinutes?: number;
   offlineSince?: string;
+  lowBatteryThreshold?: number;
+  offlineTimeoutMinutes?: number;
+  alertEnabled?: boolean;
+  lastLat?: number | null;
+  lastLng?: number | null;
   todayStats?: TodayStats;
 }
 
@@ -651,12 +664,76 @@ interface DeviceCardProps {
   onToggleAccept: (id: string, currentStatus: boolean) => Promise<void>;
   onPromptDelete: (id: string, name: string) => void;
   onToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  dashboardToken: string;
+  onOpenThreshold: (target: ThresholdTarget) => void;
+  onOpenShare: (deviceId: string) => void;
 }
 
-const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRename, onToggleAccept, onPromptDelete, onToast }: DeviceCardProps) => {
+const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRename, onToggleAccept, onPromptDelete, onToast, dashboardToken, onOpenThreshold, onOpenShare }: DeviceCardProps) => {
   const style = useMemo(() => getPlatformStyle(device.platform, device.isOffline), [device.platform, device.isOffline]);
   const timeFormatted = useMemo(() => formatTimeRemaining(device.timeRemaining, device.isCharging, device.isOffline), [device.timeRemaining, device.isCharging, device.isOffline]);
   const batteryColor = useMemo(() => getBatteryColor(device.batteryLevel, device.isOffline), [device.batteryLevel, device.isOffline]);
+  const [graphRange, setGraphRange] = useState<1 | 7 | 30>(1);
+  const [savingLocation, setSavingLocation] = useState(false);
+
+  const handleUseCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      onToast('เบราว์เซอร์นี้ไม่รองรับการระบุตำแหน่ง', 'error');
+      return;
+    }
+    setSavingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const token = dashboardToken;
+          const res = await fetch('/api/devices', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'x-dashboard-token': token },
+            body: JSON.stringify({ id: device.id, lastLat: pos.coords.latitude, lastLng: pos.coords.longitude }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            onToast(data.error || 'บันทึกตำแหน่งไม่สำเร็จ', 'error');
+          } else {
+            onToast('บันทึกตำแหน่งปัจจุบันแล้ว', 'success');
+          }
+        } catch {
+          onToast('เกิดข้อผิดพลาดในการบันทึกตำแหน่ง', 'error');
+        } finally {
+          setSavingLocation(false);
+        }
+      },
+      () => {
+        onToast('ไม่สามารถขอตำแหน่งปัจจุบันได้ กรุณาอนุญาตการเข้าถึงตำแหน่ง', 'error');
+        setSavingLocation(false);
+      }
+    );
+  }, [device.id, dashboardToken, onToast]);
+
+  const handleExportCsv = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/devices/${device.id}/export?days=90`, {
+        headers: { 'x-dashboard-token': dashboardToken },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        onToast(data.error || 'ส่งออกข้อมูลไม่สำเร็จ', 'error');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `battery_${device.name.replace(/[^a-zA-Z0-9ก-๙_-]+/g, '_')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      onToast('ส่งออกข้อมูล CSV เรียบร้อยแล้ว', 'success');
+    } catch {
+      onToast('เกิดข้อผิดพลาดในการส่งออกข้อมูล', 'error');
+    }
+  }, [device.id, device.name, dashboardToken, onToast]);
   const stats = device.todayStats;
 
   return (
@@ -678,6 +755,24 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRen
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button
+                onClick={() =>
+                  onOpenThreshold({
+                    id: device.id,
+                    name: device.name,
+                    lowBatteryThreshold: device.lowBatteryThreshold ?? 15,
+                    offlineTimeoutMinutes: device.offlineTimeoutMinutes ?? 60,
+                    alertEnabled: device.alertEnabled ?? true,
+                  })
+                }
+                className="text-slate-400 hover:text-slate-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
+                title="ตั้งค่าแจ้งเตือนเฉพาะอุปกรณ์นี้"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </button>
             </div>
@@ -774,7 +869,45 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRen
                 </div>
               </div>
 
-              <RechartsBatteryGraph data={stats.graphData || []} />
+              <div className="flex items-center justify-end gap-1 bg-slate-100 rounded-full p-0.5 w-fit ml-auto">
+                {([1, 7, 30] as const).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setGraphRange(d)}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
+                      graphRange === d ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {d} วัน
+                  </button>
+                ))}
+              </div>
+
+              {graphRange === 1 ? (
+                <RechartsBatteryGraph data={stats.graphData || []} />
+              ) : (
+                <MultiDayBatteryGraph deviceId={device.id} dashboardToken={dashboardToken} days={graphRange} />
+              )}
+
+              <DeviceAnalysisPanel deviceId={device.id} dashboardToken={dashboardToken} />
+
+              <div className="bg-slate-50/70 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/60">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">ตำแหน่งที่ตั้ง</p>
+                  <button
+                    onClick={handleUseCurrentLocation}
+                    disabled={savingLocation}
+                    className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50"
+                  >
+                    {savingLocation ? "กำลังระบุตำแหน่ง..." : "ใช้ตำแหน่งปัจจุบัน"}
+                  </button>
+                </div>
+                {device.lastLat != null && device.lastLng != null ? (
+                  <DeviceMap lat={device.lastLat} lng={device.lastLng} label={device.name} />
+                ) : (
+                  <p className="text-xs text-slate-400 text-center py-4">ยังไม่มีข้อมูลตำแหน่งของอุปกรณ์นี้</p>
+                )}
+              </div>
 
               <div className="bg-slate-50/70 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/60 max-h-48 overflow-y-auto space-y-2">
                 <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">ประวัติเหตุการณ์วันนี้</p>
@@ -810,6 +943,26 @@ const DeviceCard = React.memo(({ device, isExpanded, onToggleExpand, onPromptRen
             <span>{device.acceptingUpdates ? "รับข้อมูล" : "ปิดรับข้อมูล"}</span>
           </button>
           <button
+            onClick={handleExportCsv}
+            className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
+            title="ส่งออกประวัติแบตเตอรี่เป็นไฟล์ CSV"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H8a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>CSV</span>
+          </button>
+          <button
+            onClick={() => onOpenShare(device.id)}
+            className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:text-sky-700 px-3 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors cursor-pointer"
+            title="สร้างลิงก์แชร์สาธารณะสำหรับอุปกรณ์นี้"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342a4 4 0 010-5.658m6.632 5.658a4 4 0 000-5.658m-6.632 0a4 4 0 000 5.658m0 0L4 17m4.684-9.342L4 3m11.316 14.342L20 21m-4.684-9.342L20 3" />
+            </svg>
+            <span>แชร์</span>
+          </button>
+          <button
             onClick={() => onPromptDelete(device.id, device.name)}
             className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
             title="ลบอุปกรณ์นี้ออกจากระบบ"
@@ -842,6 +995,14 @@ export default function BatteryDashboard() {
   const [password, setPassword] = useState<string>("");
   const [authError, setAuthError] = useState<string>("");
   const [verifying, setVerifying] = useState<boolean>(false);
+  const [dashboardToken, setDashboardToken] = useState<string>("");
+
+  // Threshold Settings Modal State (Feature 4)
+  const [thresholdTarget, setThresholdTarget] = useState<ThresholdTarget | null>(null);
+
+  // Share / Embed Modal State (Feature 14)
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareModalDeviceId, setShareModalDeviceId] = useState<string | undefined>(undefined);
 
   // Add Device Modal State & Animation
   const [showAddModal, setShowAddModal] = useState(false);
@@ -907,6 +1068,7 @@ export default function BatteryDashboard() {
     const token = localStorage.getItem("dashboard_auth");
     if (token) {
       setAuthenticated(true);
+      setDashboardToken(token);
     }
     setAuthChecking(false);
   }, []);
@@ -927,6 +1089,7 @@ export default function BatteryDashboard() {
       if (res.ok && data.success && data.token) {
         localStorage.setItem("dashboard_auth", data.token);
         setAuthenticated(true);
+        setDashboardToken(data.token);
         showToast("เข้าสู่ระบบเรียบร้อยแล้ว", "success");
       } else {
         setAuthError(data.error || "รหัสผ่านไม่ถูกต้อง");
@@ -1206,6 +1369,7 @@ export default function BatteryDashboard() {
         setTimeout(() => {
           localStorage.removeItem("dashboard_auth");
           setAuthenticated(false);
+          setDashboardToken("");
           setPassword("");
         }, 1000);
       } else {
@@ -1528,6 +1692,29 @@ export default function BatteryDashboard() {
                 </svg>
                 <span>ประวัติ API</span>
               </a>
+              <a
+                href="/compare"
+                className="col-span-1 inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm px-3 sm:px-5 py-3 sm:py-2.5 rounded-2xl shadow-sm transition-all hover:shadow cursor-pointer"
+                title="เปรียบเทียบกราฟแบตเตอรี่หลายอุปกรณ์พร้อมกัน"
+              >
+                <svg className="w-4 h-4 text-slate-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2" />
+                </svg>
+                <span>เปรียบเทียบ</span>
+              </a>
+              <button
+                onClick={() => {
+                  setShareModalDeviceId(undefined);
+                  setShowShareModal(true);
+                }}
+                className="col-span-1 inline-flex items-center justify-center gap-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-xs sm:text-sm px-3 sm:px-5 py-3 sm:py-2.5 rounded-2xl border border-sky-200 shadow-sm transition-all hover:shadow cursor-pointer"
+                title="สร้างลิงก์แชร์สาธารณะ / Embed Widget"
+              >
+                <svg className="w-4 h-4 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342a4 4 0 010-5.658m6.632 5.658a4 4 0 000-5.658m-6.632 0a4 4 0 000 5.658m0 0L4 17m4.684-9.342L4 3m11.316 14.342L20 21m-4.684-9.342L20 3" />
+                </svg>
+                <span>แชร์/ฝัง</span>
+              </button>
               <button
                 onClick={() => {
                   setShowSettingsModal(true);
@@ -1550,6 +1737,7 @@ export default function BatteryDashboard() {
                 onClick={() => {
                   localStorage.removeItem("dashboard_auth");
                   setAuthenticated(false);
+                  setDashboardToken("");
                   setPassword("");
                   showToast("ออกจากระบบเรียบร้อยแล้ว", "success");
                 }}
@@ -2886,11 +3074,40 @@ export default function BatteryDashboard() {
                 onToggleAccept={handleToggleAccept}
                 onPromptDelete={handlePromptDelete}
                 onToast={showToast}
+                dashboardToken={dashboardToken}
+                onOpenThreshold={setThresholdTarget}
+                onOpenShare={(deviceId) => {
+                  setShareModalDeviceId(deviceId);
+                  setShowShareModal(true);
+                }}
               />
             ))}
           </div>
         )}
       </div>
+
+      {thresholdTarget && (
+        <ThresholdModal
+          key={thresholdTarget.id}
+          target={thresholdTarget}
+          dashboardToken={dashboardToken}
+          onClose={() => setThresholdTarget(null)}
+          onToast={showToast}
+          onSaved={(id, patch) => {
+            setDevices((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+          }}
+        />
+      )}
+
+      {showShareModal && (
+        <ShareModal
+          devices={devices.map((d) => ({ id: d.id, name: d.name }))}
+          dashboardToken={dashboardToken}
+          preselectedDeviceId={shareModalDeviceId}
+          onClose={() => setShowShareModal(false)}
+          onToast={showToast}
+        />
+      )}
     </div>
   );
 }

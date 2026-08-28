@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
+import { retentionCutoffDate } from '@/lib/retention';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -42,9 +43,8 @@ export async function GET(request: Request) {
       ];
     }
 
-    // Cleanup BatteryLog entries older than 90 days (non-blocking, fire-and-forget)
-    const cutoff90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    prisma.batteryLog.deleteMany({ where: { createdAt: { lt: cutoff90 } } }).catch(() => {});
+    // Cleanup old BatteryLog entries (non-blocking, fire-and-forget)
+    prisma.batteryLog.deleteMany({ where: { createdAt: { lt: retentionCutoffDate() } } }).catch(() => {});
 
     const [total, logs, successTotal, errorTotal] = await Promise.all([
       prisma.apiLog.count({ where }),

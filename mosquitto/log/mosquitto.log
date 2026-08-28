@@ -1,0 +1,12 @@
+1787931011: mosquitto version 2.1.2 starting
+1787931011: Config loaded from /mosquitto/config/mosquitto.conf.
+1787931011: Bridge support available.
+1787931011: Persistence support available.
+1787931011: TLS support available.
+1787931011: TLS-PSK support available.
+1787931011: Websockets support available.
+1787931011: Opening ipv4 listen socket on port 1883.
+1787931011: Opening ipv6 listen socket on port 1883.
+1787931011: Opening ipv4 listen socket on port 9001.
+1787931011: Opening ipv6 listen socket on port 9001.
+1787931011: mosquitto version 2.1.2 running

@@ -27,16 +27,30 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+    // geolocation is now allowed for this origin only — Feature 11 uses
+    // navigator.geolocation from the dashboard to record a device's
+    // location, which the previous geolocation=() blocked outright.
+    value: "camera=(), microphone=(), geolocation=(self), browsing-topics=()",
   },
 ];
+
+// /share/[token] is the public embed widget (Feature 14) — it's meant to be
+// loaded inside an <iframe> on a third-party page, so it must NOT get the
+// site-wide X-Frame-Options: SAMEORIGIN below (that would make every embed
+// blank). Every other route keeps the full header set.
+const nonEmbedSecurityHeaders = securityHeaders;
+const embedSecurityHeaders = securityHeaders.filter((h) => h.key !== "X-Frame-Options");
 
 const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:path*",
-        headers: securityHeaders,
+        source: "/((?!share).*)",
+        headers: nonEmbedSecurityHeaders,
+      },
+      {
+        source: "/share/:path*",
+        headers: embedSecurityHeaders,
       },
     ];
   },
