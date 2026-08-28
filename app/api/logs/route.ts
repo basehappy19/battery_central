@@ -42,7 +42,11 @@ export async function GET(request: Request) {
       ];
     }
 
-    const [total, logs] = await Promise.all([
+    // Cleanup BatteryLog entries older than 90 days (non-blocking, fire-and-forget)
+    const cutoff90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    prisma.batteryLog.deleteMany({ where: { createdAt: { lt: cutoff90 } } }).catch(() => {});
+
+    const [total, logs, successTotal, errorTotal] = await Promise.all([
       prisma.apiLog.count({ where }),
       prisma.apiLog.findMany({
         where,
@@ -50,6 +54,9 @@ export async function GET(request: Request) {
         skip,
         take: limit,
       }),
+      // Count totals across entire DB (ignoring current filter) for stat cards
+      prisma.apiLog.count({ where: { status: { gte: 200, lt: 400 } } }),
+      prisma.apiLog.count({ where: { status: { gte: 400 } } }),
     ]);
 
     const totalPages = Math.ceil(total / limit) || 1;
@@ -63,6 +70,8 @@ export async function GET(request: Request) {
         limit,
         totalPages,
       },
+      successTotal,
+      errorTotal,
     });
   } catch (error) {
     console.error('Failed to fetch API logs:', error);

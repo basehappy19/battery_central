@@ -358,6 +358,8 @@ const CustomGraphTooltip = ({ active, payload }: any) => {
 };
 
 const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const { chartData, chargingSpans } = useMemo(() => {
     if (!data || data.length === 0) return { chartData: [], chargingSpans: [] };
     
@@ -431,151 +433,211 @@ const RechartsBatteryGraph = React.memo(({ data }: { data: GraphPoint[] }) => {
     return <p className="text-xs text-slate-400 text-center py-8">ไม่มีข้อมูลกราฟแบตเตอรี่ในวันนี้</p>;
   }
 
+  const chartInner = (tall?: boolean) => (
+    <>
+      <defs>
+        <linearGradient id="colorDischarge" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
+          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+        </linearGradient>
+        <linearGradient id="colorCharge" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+          <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+        </linearGradient>
+      </defs>
+      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+      <XAxis
+        dataKey="time"
+        tick={{ fontSize: tall ? 11 : 10, fill: "#64748b" }}
+        stroke="#cbd5e1"
+        interval={tall ? Math.max(0, Math.floor(chartData.length / 24) - 1) : "preserveStartEnd"}
+      />
+      <YAxis
+        domain={[0, 100]}
+        tick={{ fontSize: tall ? 12 : 10, fill: "#64748b" }}
+        stroke="#cbd5e1"
+        unit="%"
+      />
+      
+      {chargingSpans.map((span, idx) => (
+        <ReferenceArea
+          key={`span-${idx}`}
+          x1={span.start}
+          x2={span.end}
+          fill="#10b981"
+          fillOpacity={0.15}
+          stroke="#059669"
+          strokeOpacity={0.3}
+          strokeDasharray="3 3"
+        />
+      ))}
+
+      {chartData.map((pt, idx) => {
+        if (pt.eventType === 'PLUGGED_IN') {
+          return (
+            <ReferenceLine
+              key={`ref-${idx}`}
+              x={pt.time}
+              stroke="#10b981"
+              strokeWidth={2}
+              strokeDasharray="3 3"
+              label={{ value: 'เริ่มชาร์จ', fill: '#047857', fontSize: 10, fontWeight: 700, position: 'top' }}
+            />
+          );
+        }
+        if (pt.eventType === 'UNPLUGGED') {
+          return (
+            <ReferenceLine
+              key={`ref-${idx}`}
+              x={pt.time}
+              stroke="#f59e0b"
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              label={{ value: 'ถอดสาย', fill: '#d97706', fontSize: 10, fontWeight: 700, position: 'top' }}
+            />
+          );
+        }
+        if (pt.eventType === 'FULL') {
+          return (
+            <ReferenceLine
+              key={`ref-${idx}`}
+              x={pt.time}
+              stroke="#3b82f6"
+              strokeWidth={2}
+              label={{ value: 'เต็ม 100%', fill: '#1d4ed8', fontSize: 10, fontWeight: 700, position: 'top' }}
+            />
+          );
+        }
+        if (pt.eventType === 'NEAR_FULL') {
+          return (
+            <ReferenceLine
+              key={`ref-${idx}`}
+              x={pt.time}
+              stroke="#6366f1"
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              label={{ value: `ใกล้เต็ม ${pt.level}%`, fill: '#4338ca', fontSize: 10, fontWeight: 700, position: 'top' }}
+            />
+          );
+        }
+        if (pt.eventType === 'LOW_BATTERY' || pt.eventType === 'BATTERY_EMPTY') {
+          return (
+            <ReferenceLine
+              key={`ref-${idx}`}
+              x={pt.time}
+              stroke="#ef4444"
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              label={{ value: pt.level === 0 ? 'แบตหมด 0%' : `ต่ำ ${pt.level}%`, fill: '#b91c1c', fontSize: 10, fontWeight: 700, position: 'top' }}
+            />
+          );
+        }
+        return null;
+      })}
+
+      <Tooltip content={<CustomGraphTooltip />} offset={24} wrapperStyle={{ outline: 'none', zIndex: 100, pointerEvents: 'none' }} />
+      <Area
+        type="monotone"
+        dataKey="dischargingLevel"
+        stroke="#3b82f6"
+        strokeWidth={2.5}
+        fillOpacity={1}
+        fill="url(#colorDischarge)"
+        dot={false}
+        activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
+      />
+      <Area
+        type="monotone"
+        dataKey="chargingLevel"
+        stroke="#10b981"
+        strokeWidth={2.5}
+        fillOpacity={1}
+        fill="url(#colorCharge)"
+        dot={false}
+        activeDot={{ r: 6, fill: "#059669", stroke: "#ffffff", strokeWidth: 2 }}
+      />
+    </>
+  );
+
+  const legend = (
+    <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] font-medium">
+      <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50/90 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-sm shadow-emerald-500/10 font-bold">
+        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        ช่วงชาร์จไฟ
+      </span>
+      <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50/90 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-sm shadow-blue-500/10 font-bold">
+        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+        ใช้งานปกติ
+      </span>
+    </div>
+  );
+
   return (
-    <div className="bg-slate-50/90 p-3 sm:p-4 rounded-xl border border-slate-200/60 mt-3 w-full">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
-          กราฟแบตเตอรี่ตลอดทั้งวัน (00:00 AM - 11:59 PM)
-        </p>
-        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] font-medium">
-          <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50/90 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-sm shadow-emerald-500/10 font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            ช่วงชาร์จไฟ
-          </span>
-          <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50/90 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-sm shadow-blue-500/10 font-bold">
-            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-            ใช้งานปกติ
-          </span>
+    <>
+      <div className="bg-slate-50/90 p-3 sm:p-4 rounded-xl border border-slate-200/60 mt-3 w-full">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+            กราฟแบตเตอรี่ตลอดทั้งวัน (00:00 AM - 11:59 PM)
+          </p>
+          <div className="flex items-center gap-2">
+            {legend}
+            <button
+              onClick={() => setIsExpanded(true)}
+              title="ขยายกราฟ"
+              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="w-full h-52 sm:h-60">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+              {chartInner()}
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
-      <div className="w-full h-52 sm:h-60">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorDischarge" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
-              </linearGradient>
-              <linearGradient id="colorCharge" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-            <XAxis
-              dataKey="time"
-              tick={{ fontSize: 10, fill: "#64748b" }}
-              stroke="#cbd5e1"
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              domain={[0, 100]}
-              tick={{ fontSize: 10, fill: "#64748b" }}
-              stroke="#cbd5e1"
-              unit="%"
-            />
-            
-            {chargingSpans.map((span, idx) => (
-              <ReferenceArea
-                key={`span-${idx}`}
-                x1={span.start}
-                x2={span.end}
-                fill="#10b981"
-                fillOpacity={0.15}
-                stroke="#059669"
-                strokeOpacity={0.3}
-                strokeDasharray="3 3"
-              />
-            ))}
 
-            {chartData.map((pt, idx) => {
-              if (pt.eventType === 'PLUGGED_IN') {
-                return (
-                  <ReferenceLine
-                    key={`ref-${idx}`}
-                    x={pt.time}
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    strokeDasharray="3 3"
-                    label={{ value: 'เริ่มชาร์จ', fill: '#047857', fontSize: 10, fontWeight: 700, position: 'top' }}
-                  />
-                );
-              }
-              if (pt.eventType === 'UNPLUGGED') {
-                return (
-                  <ReferenceLine
-                    key={`ref-${idx}`}
-                    x={pt.time}
-                    stroke="#f59e0b"
-                    strokeWidth={1.5}
-                    strokeDasharray="3 3"
-                    label={{ value: 'ถอดสาย', fill: '#d97706', fontSize: 10, fontWeight: 700, position: 'top' }}
-                  />
-                );
-              }
-              if (pt.eventType === 'FULL') {
-                return (
-                  <ReferenceLine
-                    key={`ref-${idx}`}
-                    x={pt.time}
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    label={{ value: 'เต็ม 100%', fill: '#1d4ed8', fontSize: 10, fontWeight: 700, position: 'top' }}
-                  />
-                );
-              }
-              if (pt.eventType === 'NEAR_FULL') {
-                return (
-                  <ReferenceLine
-                    key={`ref-${idx}`}
-                    x={pt.time}
-                    stroke="#6366f1"
-                    strokeWidth={1.5}
-                    strokeDasharray="3 3"
-                    label={{ value: `ใกล้เต็ม ${pt.level}%`, fill: '#4338ca', fontSize: 10, fontWeight: 700, position: 'top' }}
-                  />
-                );
-              }
-              if (pt.eventType === 'LOW_BATTERY' || pt.eventType === 'BATTERY_EMPTY') {
-                return (
-                  <ReferenceLine
-                    key={`ref-${idx}`}
-                    x={pt.time}
-                    stroke="#ef4444"
-                    strokeWidth={1.5}
-                    strokeDasharray="3 3"
-                    label={{ value: pt.level === 0 ? 'แบตหมด 0%' : `ต่ำ ${pt.level}%`, fill: '#b91c1c', fontSize: 10, fontWeight: 700, position: 'top' }}
-                  />
-                );
-              }
-              return null;
-            })}
-
-            <Tooltip content={<CustomGraphTooltip />} offset={24} wrapperStyle={{ outline: 'none', zIndex: 100, pointerEvents: 'none' }} />
-            <Area
-              type="monotone"
-              dataKey="dischargingLevel"
-              stroke="#3b82f6"
-              strokeWidth={2.5}
-              fillOpacity={1}
-              fill="url(#colorDischarge)"
-              dot={false}
-              activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
-            />
-            <Area
-              type="monotone"
-              dataKey="chargingLevel"
-              stroke="#10b981"
-              strokeWidth={2.5}
-              fillOpacity={1}
-              fill="url(#colorCharge)"
-              dot={false}
-              activeDot={{ r: 6, fill: "#059669", stroke: "#ffffff", strokeWidth: 2 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+      {/* Expanded modal */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          onClick={() => setIsExpanded(false)}
+        >
+          <div
+            className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <p className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                  กราฟแบตเตอรี่ตลอดทั้งวัน
+                </p>
+                {legend}
+              </div>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="w-full h-[60vh] p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 20, right: 20, left: -10, bottom: 0 }}>
+                  {chartInner(true)}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 });
 

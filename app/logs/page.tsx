@@ -37,11 +37,11 @@ export default function ApiLogsPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedLog, setSelectedLog] = useState<ApiLogItem | null>(null);
   const [isClearing, setIsClearing] = useState<boolean>(false);
+  const [successTotal, setSuccessTotal] = useState<number>(0);
+  const [errorTotal, setErrorTotal] = useState<number>(0);
 
   // Stats calculation
   const totalCount = pagination.total;
-  const successCount = logs.filter((l) => l.status >= 200 && l.status < 400).length;
-  const errorCount = logs.filter((l) => l.status >= 400).length;
   const avgDuration =
     logs.length > 0
       ? Math.round(logs.reduce((acc, curr) => acc + curr.durationMs, 0) / logs.length)
@@ -65,6 +65,8 @@ export default function ApiLogsPage() {
           if (data.pagination) {
             setPagination(data.pagination);
           }
+          if (typeof data.successTotal === 'number') setSuccessTotal(data.successTotal);
+          if (typeof data.errorTotal === 'number') setErrorTotal(data.errorTotal);
         }
       } catch (err) {
         console.error("Failed to fetch logs:", err);
@@ -225,7 +227,7 @@ export default function ApiLogsPage() {
             </div>
             <div>
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">สำเร็จ (2xx)</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-0.5">{successCount.toLocaleString()}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-0.5">{successTotal.toLocaleString()}</p>
             </div>
           </div>
 
@@ -237,7 +239,7 @@ export default function ApiLogsPage() {
             </div>
             <div>
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">ข้อผิดพลาด (4xx/5xx)</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-rose-600 mt-0.5">{errorCount.toLocaleString()}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-rose-600 mt-0.5">{errorTotal.toLocaleString()}</p>
             </div>
           </div>
 

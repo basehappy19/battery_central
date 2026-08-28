@@ -14,8 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ระบบติดตามแบตเตอรี่",
-  description: "แดชบอร์ดติดตามระดับแบตเตอรี่และประเมินเวลาการใช้งานแบบเรียลไทม์",
+  title: "Battery Central — ระบบติดตามแบตเตอรี่",
+  description: "แดชบอร์ดติดตามระดับแบตเตอรี่และประเมินเวลาการใช้งานแบบเรียลไทม์ รองรับ Windows, iOS, Android และ IoT",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/icon.svg",
+  },
   robots: {
     index: false,
     follow: false,
