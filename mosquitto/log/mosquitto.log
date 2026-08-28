@@ -11,3 +11,5 @@
 1787931011: Opening ipv6 listen socket on port 9001.
 1787931011: mosquitto version 2.1.2 running
 1787932811: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1787933294: mosquitto version 2.1.2 terminating
+1787933294: Saving in-memory database to /mosquitto/data//mosquitto.db.

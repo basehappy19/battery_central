@@ -20,7 +20,52 @@ interface HistoryPoint {
   level: number;
 }
 
+interface TooltipEntry {
+  dataKey: string;
+  value: number;
+  color: string;
+}
+
 const PALETTE = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"];
+
+// Custom tooltip: the chart always renders a <Line> for every device (see the
+// comment above the Line map below for why), so Recharts' default tooltip
+// would list every device on hover — including ones the user toggled off.
+// This filters the payload down to only the currently-selected devices.
+function CompareTooltip({
+  active,
+  payload,
+  label,
+  selected,
+  devices,
+}: {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
+  selected: string[];
+  devices: DeviceSummary[];
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const visible = payload.filter((p) => selected.includes(p.dataKey));
+  if (visible.length === 0) return null;
+  return (
+    <div className="bg-white/95 backdrop-blur-md px-3 py-2.5 rounded-xl border border-slate-200 shadow-xl text-xs min-w-[140px]">
+      <p className="text-slate-400 text-[10px] font-bold mb-1.5">{label}</p>
+      <div className="space-y-1">
+        {visible.map((p) => {
+          const device = devices.find((d) => d.id === p.dataKey);
+          return (
+            <div key={p.dataKey} className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+              <span className="text-slate-600 font-semibold truncate">{device?.name || p.dataKey}</span>
+              <span className="font-bold text-slate-900 ml-auto tabular-nums">{p.value}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function ComparePage() {
   // This page only ever renders client-side content behind a "logged in?"
@@ -56,6 +101,20 @@ export default function ComparePage() {
       .finally(() => setLoadingDevices(false));
   }, [dashboardToken]);
 
+  // Color is keyed off each device's fixed position in the full device list
+  // (fetched once — this order never changes afterward), NOT off its
+  // position within `selected`. `selected` reorders every time a device is
+  // toggled on/off (newly-checked ones get appended, unchecking one shifts
+  // everyone after it), which is why colors used to jump around whenever you
+  // clicked a checkbox.
+  const colorByDeviceId = useMemo(() => {
+    const map: Record<string, string> = {};
+    devices.forEach((d, idx) => {
+      map[d.id] = PALETTE[idx % PALETTE.length];
+    });
+    return map;
+  }, [devices]);
+
   const fetchHistoryFor = useCallback(
     async (deviceId: string) => {
       const res = await fetch(`/api/devices/${deviceId}/history?days=${range}`, {
@@ -68,14 +127,18 @@ export default function ComparePage() {
     [dashboardToken, range]
   );
 
+  // Fetches history for EVERY device up front — not just the ones currently
+  // checked — and this effect's dependency list deliberately does NOT
+  // include `selected`. Toggling a checkbox only flips which already-loaded
+  // line is visible (pure client-side, see chartData/Line below); it never
+  // re-triggers a fetch or the loading state, so show/hide is instant with
+  // no reload flash. This only re-runs when the device list loads or the
+  // day range changes.
   useEffect(() => {
-    // When nothing is selected, the render below already shows a "pick a
-    // device" message based on selected.length directly — no need to reset
-    // seriesByDevice here too.
-    if (selected.length === 0 || !dashboardToken) return;
+    if (devices.length === 0 || !dashboardToken) return;
     let cancelled = false;
     setLoadingHistory(true);
-    Promise.all(selected.map((id) => fetchHistoryFor(id).then((points) => [id, points] as const)))
+    Promise.all(devices.map((d) => fetchHistoryFor(d.id).then((points) => [d.id, points] as const)))
       .then((results) => {
         if (cancelled) return;
         const map: Record<string, HistoryPoint[]> = {};
@@ -88,25 +151,28 @@ export default function ComparePage() {
     return () => {
       cancelled = true;
     };
-  }, [selected, fetchHistoryFor, dashboardToken]);
+  }, [devices, fetchHistoryFor, dashboardToken]);
 
-  // Bucket every device's series into shared time buckets so they can be
-  // overlaid on one chart (raw timestamps rarely line up between devices).
+  // Bucket EVERY device's series (not just the selected ones) so the chart's
+  // data/geometry never changes just because a line was toggled on/off —
+  // only that line's opacity does (via CSS, in the render below). That's
+  // what makes show/hide feel instant instead of the whole chart re-laying
+  // itself out.
   const chartData = useMemo(() => {
     // 15-min buckets for the 1-day view (fine enough detail within a single
     // day), 1h for the week view, 6h for the month view.
     const bucketMs = range === 1 ? 15 * 60 * 1000 : range <= 7 ? 60 * 60 * 1000 : 6 * 60 * 60 * 1000;
     const buckets = new Map<number, Record<string, number[]>>();
 
-    for (const deviceId of selected) {
-      const points = seriesByDevice[deviceId] || [];
+    for (const device of devices) {
+      const points = seriesByDevice[device.id] || [];
       for (const pt of points) {
         const t = new Date(pt.time).getTime();
         const bucketKey = Math.floor(t / bucketMs) * bucketMs;
         if (!buckets.has(bucketKey)) buckets.set(bucketKey, {});
         const entry = buckets.get(bucketKey)!;
-        if (!entry[deviceId]) entry[deviceId] = [];
-        entry[deviceId].push(pt.level);
+        if (!entry[device.id]) entry[device.id] = [];
+        entry[device.id].push(pt.level);
       }
     }
 
@@ -123,19 +189,32 @@ export default function ComparePage() {
           hour12: true,
         }),
       };
-      for (const deviceId of selected) {
-        const values = entry[deviceId];
+      for (const device of devices) {
+        const values = entry[device.id];
         if (values && values.length > 0) {
-          row[deviceId] = Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+          row[device.id] = Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
         }
       }
       return row;
     });
-  }, [selected, seriesByDevice, range]);
+  }, [devices, seriesByDevice, range]);
+
+  // Legend only lists the currently-selected devices — same reasoning as
+  // CompareTooltip above (every device has a mounted <Line>, so Recharts'
+  // auto-derived legend would otherwise include hidden ones too).
+  const legendPayload = useMemo(
+    () =>
+      devices
+        .filter((d) => selected.includes(d.id))
+        .map((d) => ({ value: d.name, dataKey: d.id, color: colorByDeviceId[d.id] })),
+    [devices, selected, colorByDeviceId]
+  );
 
   const toggleDevice = (id: string) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
   };
+
+  const hasAnyData = devices.length > 0 && chartData.length > 0;
 
   if (!dashboardToken) {
     return (
@@ -201,7 +280,7 @@ export default function ComparePage() {
             <div className="flex flex-wrap gap-2">
               {devices.map((d) => {
                 const isSelected = selected.includes(d.id);
-                const color = PALETTE[selected.indexOf(d.id) % PALETTE.length];
+                const color = colorByDeviceId[d.id];
                 return (
                   <button
                     key={d.id}
@@ -222,12 +301,12 @@ export default function ComparePage() {
         </div>
 
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-6">
-          {selected.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-16">เลือกอย่างน้อย 1 อุปกรณ์เพื่อแสดงกราฟเปรียบเทียบ</p>
-          ) : loadingHistory ? (
+          {loadingDevices || (loadingHistory && !hasAnyData) ? (
             <p className="text-sm text-slate-400 text-center py-16">กำลังโหลดข้อมูลกราฟ...</p>
-          ) : chartData.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-16">ไม่มีข้อมูลย้อนหลังสำหรับอุปกรณ์ที่เลือก</p>
+          ) : !hasAnyData ? (
+            <p className="text-sm text-slate-400 text-center py-16">ไม่มีข้อมูลย้อนหลังของอุปกรณ์ในระบบ</p>
+          ) : selected.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-16">เลือกอย่างน้อย 1 อุปกรณ์เพื่อแสดงกราฟเปรียบเทียบ</p>
           ) : (
             <div className="w-full h-[420px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -235,26 +314,48 @@ export default function ComparePage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} stroke="#cbd5e1" interval={Math.max(0, Math.floor(chartData.length / 10) - 1)} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#64748b" }} stroke="#cbd5e1" unit="%" />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                    labelStyle={{ fontWeight: 700, marginBottom: 4 }}
-                    formatter={(value, name) => [`${value}%`, name]}
+                  <Tooltip content={<CompareTooltip selected={selected} devices={devices} />} />
+                  {/*
+                    Recharts 3's <Legend> no longer accepts a `payload` prop
+                    directly (it derives one from the chart's series itself,
+                    which here means every device since every device always
+                    has a mounted <Line>). Rendering our own list here via
+                    `content` sidesteps that entirely and shows only the
+                    devices that are actually selected.
+                  */}
+                  <Legend
+                    content={() => (
+                      <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-2 text-xs font-semibold">
+                        {legendPayload.map((item) => (
+                          <li key={item.dataKey} className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="text-slate-600">{item.value}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   />
-                  <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
-                  {selected.map((deviceId, idx) => (
+                  {/*
+                    Every device always gets a <Line>, regardless of `selected`
+                    — only its CSS opacity toggles. Recharts' `hide` prop looks
+                    tempting for this, but it makes the line return null
+                    (unmount) rather than fade it, so switching a device off
+                    and back on would just pop it away/back with no
+                    transition. Keeping every Line mounted and animating
+                    `className`'s opacity with a CSS transition is what
+                    actually gives a smooth fade in both directions.
+                  */}
+                  {devices.map((device) => (
                     <Line
-                      key={deviceId}
+                      key={device.id}
                       type="monotone"
-                      dataKey={deviceId}
-                      // Explicit `name` so the Tooltip/Legend show the device's
-                      // display name instead of its raw id (which is what
-                      // dataKey is, and what Recharts falls back to without
-                      // this prop).
-                      name={devices.find((d) => d.id === deviceId)?.name || deviceId}
-                      stroke={PALETTE[idx % PALETTE.length]}
+                      dataKey={device.id}
+                      name={device.name}
+                      stroke={colorByDeviceId[device.id]}
                       strokeWidth={2.5}
                       dot={false}
                       connectNulls
+                      className={`transition-opacity duration-300 ease-in-out ${selected.includes(device.id) ? "opacity-100" : "opacity-0"}`}
                     />
                   ))}
                 </LineChart>
