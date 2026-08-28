@@ -23,6 +23,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   enable_msg_reconnected: 'true',
   api_secret_key: 'secret_batt_2026',
   dashboard_password: 'battery123',
+  charge_debounce_seconds: '30',
 };
 
 export async function getSystemSettings(): Promise<Record<string, string>> {

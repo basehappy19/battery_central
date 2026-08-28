@@ -14,7 +14,9 @@ model Device {
   isCharging       Boolean
   prevBattery      Int?         // Previous battery level for rate calculation
   prevUpdatedAt    DateTime?    // Previous update timestamp for rate calculation
-  timeRemaining    Int?         // Estimated minutes remaining (to full or empty)
+  timeRemaining         Int?         // Estimated minutes remaining (to full or empty)
+  pendingIsCharging     Boolean?     // Pending charging state awaiting debounce confirmation
+  pendingChargingSince  DateTime?    // When the pending charging state was first received
   acceptingUpdates Boolean      @default(true) // Enable/disable receiving requests
   order            Int          @default(0)    // Display order on dashboard
   updatedAt        DateTime     @updatedAt

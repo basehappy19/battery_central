@@ -152,11 +152,12 @@ function calculateAdvancedTimeRemaining(
     if (p.includes('esp32') || p.includes('iot') || p.includes('sensor')) {
       historicalRate = currentIsCharging ? 20 : 0.2;
     } else if (p.includes('ios') || p.includes('android') || p.includes('phone') || p.includes('mobile')) {
-      historicalRate = currentIsCharging ? 50 : 10;
+      // ค่า default สมจริงกว่า: ~25%/hr CC phase สำหรับ Android ทั่วไป
+      historicalRate = currentIsCharging ? 25 : 10;
     } else if (p.includes('win') || p.includes('mac') || p.includes('pc') || p.includes('laptop')) {
       historicalRate = currentIsCharging ? 40 : 20;
     } else {
-      historicalRate = currentIsCharging ? 40 : 15;
+      historicalRate = currentIsCharging ? 30 : 15;
     }
   }
 
@@ -198,18 +199,22 @@ function calculateAdvancedTimeRemaining(
     }
   }
 
-  const alpha = sessionRate !== null ? Math.min(1.0, sessionDurationHours / 1.0) : 0;
+  // ปรับ alpha: trust session rate ภายใน 15 นาที แทนที่จะรอ 1 ชม.
+  const alpha = sessionRate !== null ? Math.min(1.0, sessionDurationHours / 0.25) : 0;
   const effectiveRate = sessionRate !== null
     ? alpha * sessionRate + (1 - alpha) * historicalRate
     : historicalRate;
 
   let hoursRemaining: number;
   if (currentIsCharging) {
-    if (currentBattery < 80) {
-      hoursRemaining = (80 - currentBattery + 20 * 1.6) / effectiveRate;
-    } else {
-      hoursRemaining = ((100 - currentBattery) * 1.6) / effectiveRate;
-    }
+    // CC phase (0–80%): ชาร์จเร็ว linear
+    const ccHours = currentBattery < 80
+      ? (80 - currentBattery) / effectiveRate
+      : 0;
+    // CV phase (80–100%): ชาร์จช้าลงเหลือ 50% ของ CC rate (lithium-ion characteristic)
+    const cvStartBat = Math.max(80, currentBattery);
+    const cvHours = (100 - cvStartBat) / (effectiveRate * 0.5);
+    hoursRemaining = ccHours + cvHours;
   } else {
     hoursRemaining = currentBattery / effectiveRate;
   }
@@ -217,6 +222,7 @@ function calculateAdvancedTimeRemaining(
   const minutesRemaining = Math.round(hoursRemaining * 60);
   return Math.max(1, Math.min(100000, minutesRemaining));
 }
+
 
 function createResponse(
   data: Record<string, unknown>,
@@ -343,6 +349,7 @@ export async function POST(request: Request) {
 
     const sysSettings = await getSystemSettings();
     const offlineThreshold = Number(sysSettings.offline_threshold_minutes) || 60;
+    const debounceSeconds = Number(sysSettings.charge_debounce_seconds) || 30;
     const nearFullLevels = (sysSettings.alert_near_full_levels || '80, 90, 95').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n));
     const lowBatteryLevels = (sysSettings.alert_low_battery_levels || '20, 15, 10, 5').split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n > 0);
     const nowTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
@@ -350,6 +357,40 @@ export async function POST(request: Request) {
     const nowDateTimeStr = `${nowDateStr} | ${nowTimeStr}`;
 
     const timeDiffMinutes = (now.getTime() - new Date(existingDevice.updatedAt).getTime()) / (1000 * 60);
+
+    // --- Debounce logic สำหรับ charging state เปลี่ยน ---
+    // ป้องกัน Android flicker: plugged → unplugged → plugged ภายใน 2-5 วิ
+    // pending state ต้องได้รับยืนยันซ้ำหลังผ่าน debounceSeconds วินาที
+    let confirmedIsCharging = existingDevice.isCharging;
+    let newPendingIsCharging: boolean | null = existingDevice.pendingIsCharging ?? null;
+    let newPendingChargingSince: Date | null = existingDevice.pendingChargingSince ?? null;
+    let chargingStateChanged = false;
+
+    if (currentIsCharging !== existingDevice.isCharging) {
+      // state เปลี่ยนจากสถานะจริง
+      if (newPendingIsCharging === currentIsCharging && newPendingChargingSince !== null) {
+        // เคย pending state นี้แล้ว — ตรวจว่าผ่าน debounce window หรือยัง
+        const pendingAgeSeconds = (now.getTime() - newPendingChargingSince.getTime()) / 1000;
+        if (pendingAgeSeconds >= debounceSeconds) {
+          // ยืนยัน: เปลี่ยน state จริง
+          confirmedIsCharging = currentIsCharging;
+          chargingStateChanged = true;
+          newPendingIsCharging = null;
+          newPendingChargingSince = null;
+        }
+        // ยังไม่ถึง debounce window — รอต่อ ไม่ fire event
+      } else {
+        // เริ่ม pending ใหม่ (หรือ pending state ต่างกัน = flicker กลับไปกลับมา รีเซ็ต)
+        newPendingIsCharging = currentIsCharging;
+        newPendingChargingSince = now;
+      }
+    } else {
+      // state ตรงกับ confirmed — clear pending ถ้ามี (flicker กลับมาแล้วหมด)
+      if (newPendingIsCharging !== null) {
+        newPendingIsCharging = null;
+        newPendingChargingSince = null;
+      }
+    }
 
     if (timeDiffMinutes > offlineThreshold) {
       eventType = 'RECONNECTED';
@@ -369,7 +410,7 @@ export async function POST(request: Request) {
         duration: durText,
       });
       if (sysSettings.enable_msg_reconnected !== 'false') await sendNotification(msg);
-    } else if (existingDevice.isCharging !== currentIsCharging) {
+    } else if (chargingStateChanged) {
       eventType = currentIsCharging ? 'PLUGGED_IN' : 'UNPLUGGED';
       const deviceName = existingDevice.name || `Device (${cleanDeviceId.slice(0, 6)})`;
       if (currentIsCharging) {
@@ -396,7 +437,7 @@ export async function POST(request: Request) {
         });
         if (sysSettings.enable_msg_unplugged !== 'false') await sendNotification(msg);
       }
-    } else if (currentIsCharging && existingDevice.batteryLevel < currentBattery) {
+    } else if (confirmedIsCharging && existingDevice.batteryLevel < currentBattery) {
       // ถ้าแบตกระโดดข้าม threshold หลายอัน ให้เลือก threshold สูงสุดที่ข้ามผ่าน
       // และถ้า battery = 100 ให้ใช้แค่ FULL_CHARGE เท่านั้น ไม่ใช้ NEAR_FULL
       const chargeThresholds = [...nearFullLevels, 100].sort((a, b) => a - b);
@@ -449,7 +490,7 @@ export async function POST(request: Request) {
       } else {
         eventType = 'LEVEL_UPDATE';
       }
-    } else if (!currentIsCharging && existingDevice.batteryLevel > currentBattery) {
+    } else if (!confirmedIsCharging && existingDevice.batteryLevel > currentBattery) {
       const drainThresholds = lowBatteryLevels.sort((a, b) => b - a);
       const crossedThreshold = drainThresholds.find(
         (t) => currentBattery <= t && existingDevice.batteryLevel > t
@@ -483,10 +524,10 @@ export async function POST(request: Request) {
       eventType = 'LEVEL_UPDATE';
     }
 
-    if (existingDevice.isCharging !== currentIsCharging || existingDevice.batteryLevel !== currentBattery) {
+    if (chargingStateChanged || existingDevice.batteryLevel !== currentBattery) {
       timeRemaining = calculateAdvancedTimeRemaining(
         currentBattery,
-        currentIsCharging,
+        confirmedIsCharging,
         now,
         existingDevice.logs || [],
         existingDevice.platform
@@ -501,11 +542,13 @@ export async function POST(request: Request) {
       where: { id: cleanDeviceId },
       data: {
         batteryLevel: currentBattery,
-        isCharging: currentIsCharging,
+        isCharging: confirmedIsCharging,
         updatedAt: now,
         prevBattery: prevBattery,
         prevUpdatedAt: prevUpdatedAt,
         timeRemaining: timeRemaining,
+        pendingIsCharging: newPendingIsCharging,
+        pendingChargingSince: newPendingChargingSince,
         ...(cleanName && { name: cleanName }),
         ...(cleanPlatform && { platform: cleanPlatform }),
       },
@@ -516,7 +559,7 @@ export async function POST(request: Request) {
         data: {
           deviceId: cleanDeviceId,
           batteryLevel: currentBattery,
-          isCharging: currentIsCharging,
+          isCharging: confirmedIsCharging,
           eventType: eventType,
         },
       });
