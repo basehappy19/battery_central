@@ -29,7 +29,7 @@ export default function ComparePage() {
   const [dashboardToken] = useState<string>(() => (typeof window !== "undefined" ? localStorage.getItem("dashboard_auth") || "" : ""));
   const [devices, setDevices] = useState<DeviceSummary[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
-  const [range, setRange] = useState<7 | 30>(7);
+  const [range, setRange] = useState<1 | 7 | 30>(7);
   const [seriesByDevice, setSeriesByDevice] = useState<Record<string, HistoryPoint[]>>({});
   const [loadingDevices, setLoadingDevices] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -47,7 +47,10 @@ export default function ComparePage() {
           isCharging: d.isCharging,
         }));
         setDevices(list);
-        setSelected(list.slice(0, 2).map((d) => d.id));
+        // Default to comparing every device, not just the first couple —
+        // most installs only have a handful of devices, so showing all of
+        // them up front is more useful than an arbitrary slice(0, 2).
+        setSelected(list.map((d) => d.id));
       })
       .catch(() => {})
       .finally(() => setLoadingDevices(false));
@@ -90,7 +93,9 @@ export default function ComparePage() {
   // Bucket every device's series into shared time buckets so they can be
   // overlaid on one chart (raw timestamps rarely line up between devices).
   const chartData = useMemo(() => {
-    const bucketMs = range <= 7 ? 60 * 60 * 1000 : 6 * 60 * 60 * 1000; // 1h or 6h buckets
+    // 15-min buckets for the 1-day view (fine enough detail within a single
+    // day), 1h for the week view, 6h for the month view.
+    const bucketMs = range === 1 ? 15 * 60 * 1000 : range <= 7 ? 60 * 60 * 1000 : 6 * 60 * 60 * 1000;
     const buckets = new Map<number, Record<string, number[]>>();
 
     for (const deviceId of selected) {
@@ -110,8 +115,9 @@ export default function ComparePage() {
       const entry = buckets.get(key)!;
       const row: Record<string, number | string> = {
         label: new Date(key).toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
+          // A single-day view doesn't need the date repeated on every tick.
+          month: range === 1 ? undefined : "short",
+          day: range === 1 ? undefined : "numeric",
           hour: "2-digit",
           minute: range <= 7 ? "2-digit" : undefined,
           hour12: true,
@@ -169,7 +175,7 @@ export default function ComparePage() {
             </h1>
           </div>
           <div className="flex items-center gap-1 bg-slate-100 rounded-full p-0.5">
-            {([7, 30] as const).map((d) => (
+            {([1, 7, 30] as const).map((d) => (
               <button
                 key={d}
                 onClick={() => setRange(d)}
